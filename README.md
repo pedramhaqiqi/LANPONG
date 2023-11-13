@@ -5,44 +5,36 @@
 
 ### Dev:
 
-## Setting up your own virtual environment
+# Setting up your own virtual environment
 
 Run `make virtualenv` to create a virtual environment.
 then activate it with `source .venv/bin/activate`.
 
-## Install the project in develop mode
+# Install the project in develop mode
 
 Run `make install` to install the project in develop mode.
 
-## Run the tests to ensure everything is working
+# Install pre-commit hooks
 
-Run `make test` to run the tests.
+Run `poetry run pre-commit install` to install the pre-commit hooks
 
-## Create a new branch to work on your contribution
 
-Run `git checkout -b my_contribution`
+## Linter/Formatting
 
-## Make your changes
-
-Edit the files using your preferred editor. (we recommend VIM or VSCode)
-
-## Format the code
+# Format the code
 
 Run `make fmt` to format the code.
 
-## Run the linter
+# Run the linter
 
 Run `make lint` to run the linter.
 
-## Test your changes
 
-Run `make test` to run the tests.
-
-## Makefile utilities
+# Makefile utilities
 
 This project comes with a `Makefile` that contains a number of useful utility.
 
-```bash 
+```bash
 ❯ make
 Usage: make <target>
 
@@ -64,5 +56,3 @@ $ python -m lanpong
 #or
 $ lanpong
 ```
-
-
