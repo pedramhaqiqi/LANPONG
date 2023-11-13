@@ -57,15 +57,6 @@ clean:            ## Clean unused files.
 virtualenv:       ## Create a virtual environment.
 release:          ## Create a new tag for release.
 ```
----
-# lanpong
-
-[![codecov](https://codecov.io/gh/pedramhaqiqi/LANPONG/branch/main/graph/badge.svg?token=LANPONG_token_here)](https://codecov.io/gh/pedramhaqiqi/LANPONG)
-[![CI](https://github.com/pedramhaqiqi/LANPONG/actions/workflows/main.yml/badge.svg)](https://github.com/pedramhaqiqi/LANPONG/actions/workflows/main.yml)
-
-Awesome lanpong created by pedramhaqiqi
-
-
 ## Usage
 
 ```bash
