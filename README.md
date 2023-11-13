@@ -1,55 +1,62 @@
 
-# Python Project Template
+### LANPONG
 
-A low dependency and really simple to start project template for Python Projects.
+< Description >
 
-See also 
-- [Flask-Project-Template](https://github.com/rochacbruno/flask-project-template/) for a full feature Flask project including database, API, admin interface, etc.
-- [FastAPI-Project-Template](https://github.com/rochacbruno/fastapi-project-template/) The base to start an openapi project featuring: SQLModel, Typer, FastAPI, JWT Token Auth, Interactive Shell, Management Commands.
+### Dev:
 
-### HOW TO USE THIS TEMPLATE
+## Setting up your own virtual environment
 
-> **DO NOT FORK** this is meant to be used from **[Use this template](https://github.com/rochacbruno/python-project-template/generate)** feature.
+Run `make virtualenv` to create a virtual environment.
+then activate it with `source .venv/bin/activate`.
 
-1. Click on **[Use this template](https://github.com/rochacbruno/python-project-template/generate)**
-3. Give a name to your project  
-   (e.g. `my_awesome_project` recommendation is to use all lowercase and underscores separation for repo names.)
-3. Wait until the first run of CI finishes  
-   (Github Actions will process the template and commit to your new repo)
-4. If you want [codecov](https://about.codecov.io/sign-up/) Reports and Automatic Release to [PyPI](https://pypi.org)  
-  On the new repository `settings->secrets` add your `PYPI_API_TOKEN` and `CODECOV_TOKEN` (get the tokens on respective websites)
-4. Read the file [CONTRIBUTING.md](CONTRIBUTING.md)
-5. Then clone your new project and happy coding!
+## Install the project in develop mode
 
-> **NOTE**: **WAIT** until first CI run on github actions before cloning your new project.
+Run `make install` to install the project in develop mode.
 
-### What is included on this template?
+## Run the tests to ensure everything is working
 
-- 🖼️ Templates for starting multiple application types:
-  * **Basic low dependency** Python program (default) [use this template](https://github.com/rochacbruno/python-project-template/generate)
-  * **Flask** with database, admin interface, restapi and authentication [use this template](https://github.com/rochacbruno/flask-project-template/generate).
-  **or Run `make init` after cloning to generate a new project based on a template.**
-- 📦 A basic [setup.py](setup.py) file to provide installation, packaging and distribution for your project.  
-  Template uses setuptools because it's the de-facto standard for Python packages, you can run `make switch-to-poetry` later if you want.
-- 🤖 A [Makefile](Makefile) with the most useful commands to install, test, lint, format and release your project.
-- 📃 Documentation structure using [mkdocs](http://www.mkdocs.org)
-- 💬 Auto generation of change log using **gitchangelog** to keep a HISTORY.md file automatically based on your commit history on every release.
-- 🐋 A simple [Containerfile](Containerfile) to build a container image for your project.  
-  `Containerfile` is a more open standard for building container images than Dockerfile, you can use buildah or docker with this file.
-- 🧪 Testing structure using [pytest](https://docs.pytest.org/en/latest/)
-- ✅ Code linting using [flake8](https://flake8.pycqa.org/en/latest/)
-- 📊 Code coverage reports using [codecov](https://about.codecov.io/sign-up/)
-- 🛳️ Automatic release to [PyPI](https://pypi.org) using [twine](https://twine.readthedocs.io/en/latest/) and github actions.
-- 🎯 Entry points to execute your program using `python -m <lanpong>` or `$ lanpong` with basic CLI argument parsing.
-- 🔄 Continuous integration using [Github Actions](.github/workflows/) with jobs to lint, test and release your project on Linux, Mac and Windows environments.
+Run `make test` to run the tests.
 
-> Curious about architectural decisions on this template? read [ABOUT_THIS_TEMPLATE.md](ABOUT_THIS_TEMPLATE.md)  
-> If you want to contribute to this template please open an [issue](https://github.com/rochacbruno/python-project-template/issues) or fork and send a PULL REQUEST.
+## Create a new branch to work on your contribution
 
-[❤️ Sponsor this project](https://github.com/sponsors/rochacbruno/)
+Run `git checkout -b my_contribution`
 
-<!--  DELETE THE LINES ABOVE THIS AND WRITE YOUR PROJECT README BELOW -->
+## Make your changes
 
+Edit the files using your preferred editor. (we recommend VIM or VSCode)
+
+## Format the code
+
+Run `make fmt` to format the code.
+
+## Run the linter
+
+Run `make lint` to run the linter.
+
+## Test your changes
+
+Run `make test` to run the tests.
+
+## Makefile utilities
+
+This project comes with a `Makefile` that contains a number of useful utility.
+
+```bash 
+❯ make
+Usage: make <target>
+
+Targets:
+help:             ## Show the help.
+install:          ## Install the project in dev mode.
+fmt:              ## Format code using black & isort.
+lint:             ## Run pep8, black, mypy linters.
+test: lint        ## Run tests and generate coverage report.
+watch:            ## Run tests on every change.
+clean:            ## Clean unused files.
+virtualenv:       ## Create a virtual environment.
+release:          ## Create a new tag for release.
+```
 ---
 # lanpong
 
@@ -58,21 +65,8 @@ See also
 
 Awesome lanpong created by pedramhaqiqi
 
-## Install it from PyPI
-
-```bash
-pip install lanpong
-```
 
 ## Usage
-
-```py
-from lanpong import BaseClass
-from lanpong import base_function
-
-BaseClass().base_method()
-base_function()
-```
 
 ```bash
 $ python -m lanpong
@@ -80,6 +74,4 @@ $ python -m lanpong
 $ lanpong
 ```
 
-## Development
 
-Read the [CONTRIBUTING.md](CONTRIBUTING.md) file.
