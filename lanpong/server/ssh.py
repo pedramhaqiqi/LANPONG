@@ -6,6 +6,16 @@ import paramiko
 RSA_KEY = paramiko.RSAKey.from_private_key_file("test_key")
 
 
+# Global list to keep track of all client connections
+client_connections = []
+
+
+def broadcast_message(message, sender):
+    for client in client_connections:
+        if client != sender:
+            client.sendall(message.encode())
+
+
 class SSHServer(paramiko.ServerInterface):
     def check_channel_request(self, kind, chanid):
         if kind == "session":
@@ -36,6 +46,19 @@ def handle_client(client):
     ssh_server = SSHServer()
     transport.start_server(server=ssh_server)
 
+    # Add client to the global list
+    client_connections.append(client)
+
+    # Assuming you have a channel to receive data from the client
+    channel = transport.accept()
+    while True:
+        data = channel.recv(1024)
+        if not data:
+            break
+        message = f"Message from {client.getpeername()}: {data.decode()}"
+        print(message)
+        # broadcast_message(message, client)
+
 
 def start_server(host="0.0.0.0", port=2222):
     """Starts an SSH server on specified port and address
@@ -56,3 +79,6 @@ def start_server(host="0.0.0.0", port=2222):
         print(f"Incoming connection from {client_addr[0]}:{client_addr[1]}")
         client_thread = threading.Thread(target=handle_client, args=(client_socket,))
         client_thread.start()
+
+
+start_server()
