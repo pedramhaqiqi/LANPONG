@@ -1,31 +1,58 @@
-import asyncio
-import sys
+import socket
+import threading
 
-import asyncssh
+import paramiko
 
-
-class SSHServer(asyncssh.SSHServer):
-    def connection_made(self, conn):
-        print("SSH connection received from %s." % conn.get_extra_info("peername")[0])
-
-    def connection_lost(self, exc):
-        if exc:
-            print("SSH connection error: " + str(exc), file=sys.stderr)
-        else:
-            print("SSH connection closed.")
+RSA_KEY = paramiko.RSAKey.from_private_key_file("test_key")
 
 
-async def start_server():
-    await asyncssh.create_server(
-        SSHServer, "", 22, server_host_keys=["/Users/pedramhaqiqi/.ssh/key"]
-    )
+class SSHServer(paramiko.ServerInterface):
+    def check_channel_request(self, kind, chanid):
+        if kind == "session":
+            return paramiko.OPEN_SUCCEEDED
+        return paramiko.OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED
+
+    def check_channel_pty_request(
+        self, channel, term, width, height, pixelwidth, pixelheight, modes
+    ):
+        # Investigate whether useful for draw
+        return True
+
+    def check_channel_shell_request(self, channel):
+        return True
+
+    def check_auth_password(self, username, password):
+        # QoL change/Need db for secure auth
+        # if (username == "admin") and (password == "password"):
+        #     print("Password accepted")
+        #     return paramiko.AUTH_SUCCESSFUL
+        return paramiko.AUTH_SUCCESSFUL
 
 
-def run_server():
-    loop = asyncio.get_event_loop()
+def handle_client(client):
+    transport = paramiko.Transport(client)
+    server_key = RSA_KEY
+    transport.add_server_key(server_key)
+    ssh_server = SSHServer()
+    transport.start_server(server=ssh_server)
 
-    try:
-        loop.run_until_complete(start_server())
-    except (OSError, asyncssh.Error) as exc:
-        sys.exit("Error starting server: " + str(exc))
-    loop.run_forever()
+
+def start_server(host="0.0.0.0", port=2222):
+    """Starts an SSH server on specified port and address
+
+    Args:
+        host (str): Server host addr. Defaults to '0.0.0.0'.
+        port (int): Port. Defaults to 2222.
+    """
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.bind((host, port))
+    sock.listen(100)
+    print(f"Listening for connection on {host}:{port}")
+
+    while True:
+        # TCP Socket initialization
+        client_socket, client_addr = sock.accept()
+        print(f"Incoming connection from {client_addr[0]}:{client_addr[1]}")
+        client_thread = threading.Thread(target=handle_client, args=(client_socket,))
+        client_thread.start()
