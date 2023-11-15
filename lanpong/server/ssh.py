@@ -3,18 +3,6 @@ import threading
 
 import paramiko
 
-RSA_KEY = paramiko.RSAKey.from_private_key_file("test_key")
-
-
-# Global list to keep track of all client connections
-client_connections = []
-
-
-def broadcast_message(message, sender):
-    for client in client_connections:
-        if client != sender:
-            client.sendall(message.encode())
-
 
 class SSHServer(paramiko.ServerInterface):
     def check_channel_request(self, kind, chanid):
@@ -38,26 +26,49 @@ class SSHServer(paramiko.ServerInterface):
         #     return paramiko.AUTH_SUCCESSFUL
         return paramiko.AUTH_SUCCESSFUL
 
+    def get_banner(self):
+        return ("My SSH Server\r\n", "en-US")
+
+
+server_key = paramiko.RSAKey.from_private_key_file("test_key")
+
 
 def handle_client(client):
     transport = paramiko.Transport(client)
-    server_key = RSA_KEY
-    transport.add_server_key(server_key)
     ssh_server = SSHServer()
-    transport.start_server(server=ssh_server)
+    transport.add_server_key(server_key)
+    try:
+        transport.start_server(server=ssh_server)
+    except paramiko.SSHException:
+        return
 
-    # Add client to the global list
-    client_connections.append(client)
+    channel = transport.accept(20)
+    if channel is None:
+        print("No channel.")
+        return
 
-    # Assuming you have a channel to receive data from the client
-    channel = transport.accept()
-    while True:
-        data = channel.recv(1024)
-        if not data:
-            break
-        message = f"Message from {client.getpeername()}: {data.decode()}"
-        print(message)
-        # broadcast_message(message, client)
+    print("Authenticated!")
+    channel.send("Welcome to the SSH server. Type something:")
+    channel.send("\r\n")
+
+    try:
+        while True:
+            # Read data from client
+            data = channel.recv(1024)
+            if not data:
+                break
+
+            # Convert to string and strip newlines
+            data_str = data.decode("utf-8").strip()
+            print(f"Received data: {data_str} from {client.getpeername()}")
+
+            # Optionally, send data back to the client
+            channel.send(f"You typed: {data_str}\r\n")
+    except Exception as e:
+        print(f"Exception: {e}")
+
+    finally:
+        channel.close()
 
 
 def start_server(host="0.0.0.0", port=2222):
@@ -79,6 +90,3 @@ def start_server(host="0.0.0.0", port=2222):
         print(f"Incoming connection from {client_addr[0]}:{client_addr[1]}")
         client_thread = threading.Thread(target=handle_client, args=(client_socket,))
         client_thread.start()
-
-
-start_server()
