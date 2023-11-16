@@ -1,8 +1,9 @@
 """
 - Import things from your .base module
 """
-from lanpong.server.ssh import start_server
+from lanpong.server.server import Server
 
 
 def main():  # pragma: no cover
-    start_server()
+    server = Server()
+    server.start_server()
