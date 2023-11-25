@@ -22,16 +22,22 @@ class StartScreen:
         unicurses.clear()
 
         # Create a new window
-        height, width = 10, 40  # Define the window size
+        self.height, self.width = 10, 40  # Define the window size
         start_y, start_x = 4, 4  # Define the position of the window
-        win = unicurses.newwin(height, width, start_y, start_x)
+        self.win = unicurses.newwin(self.height, self.width, start_y, start_x)
 
         # Box the window and add a title
-        unicurses.box(win)
-        unicurses.mvwaddstr(win, 0, 2, " Game Title ")
+        unicurses.box(self.win)
+        unicurses.mvwaddstr(self.win, 0, 2, " Game Title ")
 
         # Refresh the screen to show the box
-        unicurses.wrefresh(win)
+        unicurses.wrefresh(self.win)
 
-        # Wait for user input
-        unicurses.wgetch(win)
+    def get_content(self):
+        print("getting content...")
+        screen_content = ""
+        for y in range(self.height):
+            for x in range(self.width):
+                tmp = unicurses.mvwgetstr(self.win, y, x)
+                screen_content += tmp
+        print("screen_content: ", screen_content)

@@ -4,6 +4,7 @@ import time
 
 import paramiko
 
+from lanpong.screens.start_screen import StartScreen
 from lanpong.server.ssh import SSHServer
 
 
@@ -32,7 +33,7 @@ class Server:
                     client.close()
                     self._connections.remove(client)
 
-    def handle_client(self, client):
+    def handle_client(self, client, start_screen: StartScreen = None):
         transport = paramiko.Transport(client)
         ssh_server = SSHServer()
         transport.add_server_key(self._server_key)
@@ -49,6 +50,8 @@ class Server:
             return
 
         print("Authenticated!\r")
+        channel.send("content:" + start_screen.get_content())
+        channel.send("\r\n")
         channel.send("Welcome to the SSH server. Type something:")
         channel.send("\r\n")
 
@@ -73,7 +76,7 @@ class Server:
             self.connections.remove(client)
             channel.close()
 
-    def start_server(self, host="0.0.0.0", port=2222):
+    def start_server(self, host="0.0.0.0", port=2222, start_screen: StartScreen = None):
         """Starts an SSH server on specified port and address
 
         Args:
@@ -94,7 +97,11 @@ class Server:
                 client_socket, client_addr = server_sock.accept()
                 print(f"Incoming connection from {client_addr[0]}:{client_addr[1]}\r")
                 client_thread = threading.Thread(
-                    target=self.handle_client, args=(client_socket,)
+                    target=self.handle_client,
+                    kwargs={
+                        "client": client_socket,
+                        "start_screen": start_screen,
+                    },
                 )
                 client_thread.start()
 
