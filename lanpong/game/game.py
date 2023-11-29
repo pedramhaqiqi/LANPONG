@@ -56,6 +56,21 @@ class Ball:
         if self.get_y() <= 0 or self.get_y() >= height - 1:
             self.invert_velocity_y()
 
+    def check_paddle_collision(self, left_paddle, right_paddle):
+        """
+        Check if the ball has collided with a paddle.
+        :param left/right_paddle: The paddle to check collision with.
+        :return: True if the ball has collided with the paddle, False otherwise.
+        """
+        if (
+            right_paddle.height == self.get_y()
+            and right_paddle.column - 1 == self.get_x()
+        ) or (
+            left_paddle.height == self.get_y()
+            and left_paddle.column + 1 == self.get_x()
+        ):
+            self.invert_velocity_x()
+
     def keep_within_bounds(self, width, height):
         self.coords[0] = np.clip(self.coords[0], 1, width - 2)
         self.coords[1] = np.clip(self.coords[1], 1, height - 2)
@@ -109,7 +124,7 @@ class Game:
         self.ball = Ball(
             [self.width // 2, self.height // 2],
             1,
-            1,
+            0,
         )
 
         self.paddle1 = Paddle(self.height // 2, 1)
@@ -140,6 +155,7 @@ class Game:
         old_coords = self.ball.get_coords().copy()
 
         self.ball.update_position()
+        self.ball.check_paddle_collision(self.player1.paddle, self.player2.paddle)
         self.ball.check_wall_collision(self.width, self.height)
         self.ball.keep_within_bounds(self.width, self.height)
 
