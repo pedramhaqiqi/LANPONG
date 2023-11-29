@@ -91,7 +91,7 @@ class Game:
         player = self.player1 if player_number == 1 else self.player2
         paddle = player.paddle
         old_height = player.paddle.height
-        new_height = None
+        new_height = old_height
 
         # Only update paddle position if the key is valid and the paddle is not at the edge of the board
         if key == "w" and old_height > 1:
