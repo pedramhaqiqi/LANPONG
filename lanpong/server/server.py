@@ -36,6 +36,7 @@ class Server:
         self.connections = []
         self.waiting_message = get_waiting_message()
         self.channel_lock = threading.Lock()
+        self.game = Game()
 
     def start_server(self, host="0.0.0.0", port=2222):
         """Starts an SSH server on specified port and address
@@ -50,6 +51,8 @@ class Server:
             server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             server_sock.bind((host, port))
             server_sock.listen(100)
+            game_thread = threading.Thread(target=self.handle_game, args=())
+            game_thread.start()
             print(f"Listening for connection on {host}:{port}")
 
             # Accept multiple connections, thread-out
@@ -60,6 +63,12 @@ class Server:
                     target=self.handle_client, args=(client_socket,)
                 )
                 client_thread.start()
+
+    def handle_game(self):
+        while True:
+            if self.game.started:
+                self.game.update_ball()
+                time.sleep(0.05)
 
     def broadcast_message(self, message, sender):
         for client in self.connections:
@@ -93,15 +102,30 @@ class Server:
         channel.send("\r\n")
         channel_file = channel.makefile()
 
+        def handle_input(player_id):
+            while True:
+                try:
+                    key = channel_file.read(1).decode()
+                    self.game.update_paddle(player_id, key)
+                except Exception as e:
+                    print(f"Exception: {e}")
+                    break
+
         try:
+            player_id = None
             while len(self.connections) < 2:
                 channel.sendall("\x1b[H\x1b[J")
                 channel.sendall(self.waiting_message)
                 time.sleep(0.5)
+            player_id = self.game.initialize_player()
+            self.game.started = True
+            input_thread = threading.Thread(target=handle_input, args=(player_id,))
+            input_thread.start()
             while True:
                 # Clear screen
                 channel.sendall("\x1b[H\x1b[J")
-                time.sleep(0.5)
+                channel.sendall(self.game.get_board())
+                time.sleep(0.05)
         except Exception as e:
             print(f"Exception: {e}")
 
