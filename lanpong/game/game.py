@@ -124,7 +124,7 @@ class Game:
         self.ball = Ball(
             [self.width // 2, self.height // 2],
             1,
-            0,
+            1,
         )
 
         self.paddle1 = Paddle(self.height // 2, 1)
