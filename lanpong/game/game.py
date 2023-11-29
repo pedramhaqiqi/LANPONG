@@ -42,6 +42,7 @@ class Game:
         self.width = Game.DEFAULT_WIDTH
         self.height = Game.DEFAULT_HEIGHT
         self.board = np.zeros((self.height, self.width), dtype="U1")
+        self.started = False
 
         # Draw the board
         for i in range(self.height):
