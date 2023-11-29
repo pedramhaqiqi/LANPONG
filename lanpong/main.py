@@ -17,8 +17,8 @@ def main():  # pragma: no cover
     while True:
         # user1_input = input("User1 Enter something: ")
         # user2_input = input("User2 Enter something: ")
-        # game.update_paddle(1, user1_input)
-        # game.update_paddle(2, user2_input)
+        # game.update_paddle(1, 'user1_input')
+        # game.update_paddle(2, 'user2_input')
         game.get_board()
         game.update_ball()
         print(game.ball.__dict__)
