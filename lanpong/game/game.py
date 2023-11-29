@@ -102,13 +102,13 @@ class Game:
     """
 
     DEFAULT_HEIGHT = 24
-    DEFAULT_WIDTH = 80
+    DEFAULT_WIDTH = 70
     DEFAULT_PADDLE_HEIGHT = DEFAULT_HEIGHT // 2
 
     def __init__(self):
         self.width = Game.DEFAULT_WIDTH
         self.height = Game.DEFAULT_HEIGHT
-        self.board = np.zeros((self.height, self.width), dtype="U1")
+        self.board = np.full((self.height, self.width), " ", dtype="S1")
         self.started = False
 
         # Draw the board
@@ -164,6 +164,8 @@ class Game:
 
         # Draw the ball at its new position
         self.board[self.ball.get_y()][self.ball.get_x()] = "*"
+        self.update_paddle(1, "")
+        self.update_paddle(2, "")
 
     def update_paddle(self, player_number: int, key):
         """Updates the paddle positions"""
@@ -197,7 +199,12 @@ class Game:
         #         print(self.board[i][j])
         #         state += self.board[i][j]
         #     state += "\n"
-        # return state
-        print("\x1b[H\x1b[J")
-        for row in self.board:
-            print("".join(row))
+
+        return (
+            "\r\n".join(["".join(c.decode() for c in row) for row in self.board])
+            + "\r\n"
+        )
+
+        # print("\x1b[H\x1b[J")
+        # for row in self.board:
+        #     print("".join(row))
