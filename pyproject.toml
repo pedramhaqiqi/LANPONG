@@ -9,6 +9,7 @@ readme = "README.md"
 python = "^3.11"
 asyncssh = "^2.14.1"
 paramiko = "^3.3.1"
+numpy = "^1.26.2"
 
 
 [tool.poetry.group.dev.dependencies]
