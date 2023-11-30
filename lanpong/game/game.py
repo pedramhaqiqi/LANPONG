@@ -164,8 +164,6 @@ class Game:
 
         # Draw the ball at its new position
         self.board[self.ball.get_y()][self.ball.get_x()] = "*"
-        self.update_paddle(1, "")
-        self.update_paddle(2, "")
 
     def update_paddle(self, player_number: int, key):
         """Updates the paddle positions"""
