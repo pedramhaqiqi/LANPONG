@@ -110,11 +110,12 @@ class Server:
         def handle_input(player_id, game):
             while True:
                 try:
-                    key = channel_file.read(1).decode()
-                    game.update_paddle(player_id, key)
+                    key = channel_file.read(1) if channel.recv_ready() else b""
                 except Exception as e:
                     print(f"Exception: {e}")
                     break
+                game.update_paddle(player_id, key)
+                time.sleep(0.05)
 
         try:
             # Show waiting screen until there are two players
