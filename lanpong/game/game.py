@@ -10,9 +10,10 @@ class Paddle:
     Paddle object for pong
     """
 
-    def __init__(self, height, column):
+    def __init__(self, height, column, length=2):
         self.height = height
         self.column = column
+        self.length = length
 
 
 class Player:
@@ -68,9 +69,10 @@ class Ball:
 
     def check_wall_collision(self, width, height):
         if self.get_x() <= 0 or self.get_x() >= width - 1:
-            self.invert_velocity_x()
+            return True
         if self.get_y() <= 0 or self.get_y() >= height - 1:
             self.invert_velocity_y()
+            return False
 
     def check_paddle_collision(self, left_paddle, right_paddle):
         """
@@ -105,7 +107,7 @@ class Game:
         self.width = Game.DEFAULT_WIDTH
         self.height = Game.DEFAULT_HEIGHT
         self.started = False
-        self.player_init_lock = threading.Lock()
+        self.lock = threading.Lock()
 
         self.ball = Ball(
             [self.width // 2, self.height // 2],
@@ -128,22 +130,24 @@ class Game:
 
     def initialize_player(self):
         """Initializes a player. Returns non-zero player id, 0 if game is full."""
-        with self.player_init_lock:
-            if not self.player1.is_initialized:
-                self.player1.is_initialized = True
-                return 1
-            elif not self.player2.is_initialized:
-                self.player2.is_initialized = True
-                return 2
-            else:
-                return 0
+        if not self.player1.is_initialized:
+            self.player1.is_initialized = True
+            return 1
+        elif not self.player2.is_initialized:
+            self.player2.is_initialized = True
+            return 2
+        else:
+            return 0
 
     def update_ball(self):
         old_coords = self.ball.get_coords().copy()
 
         self.ball.update_position()
         self.ball.check_paddle_collision(self.player1.paddle, self.player2.paddle)
-        self.ball.check_wall_collision(self.width, self.height)
+        end_round = self.ball.check_wall_collision(self.width, self.height)
+        if end_round:
+            return True
+
         self.ball.keep_within_bounds(self.width, self.height)
 
         # Clear the old position of the ball
@@ -174,6 +178,13 @@ class Game:
 
     def __str__(self):
         return Game.screen_to_tui(self.screen)
+
+    # def (self, callback):
+
+    def is_full(self):
+        return (
+            self.player1.is_initialized is True and self.player2.is_initialized is True
+        )
 
     @staticmethod
     def get_blank_screen():
