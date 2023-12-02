@@ -16,7 +16,7 @@ def get_message_screen(message):
     start = (cols - len(message)) // 2
     screen[rows // 2, start : start + len(message)] = list(message)
 
-    return "\r\n".join(["".join(c.decode() for c in row) for row in screen]) + "\r\n"
+    return Game.screen_to_tui(screen)
 
 
 class Server:
@@ -112,7 +112,7 @@ class Server:
             while True:
                 # Clear screen
                 channel.sendall("\x1b[H\x1b[J")
-                channel.sendall(self.game.get_screen())
+                channel.sendall(str(self.game))
                 time.sleep(0.05)
         except Exception as e:
             print(f"Exception: {e}")
