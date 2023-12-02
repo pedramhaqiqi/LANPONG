@@ -183,7 +183,6 @@ class Game:
     def get_screen(self) -> str:
         """
         Returns the current game state as a single string representing the screen when printed to stdout
-        Uses: update() method
         """
         return (
             "\r\n".join(["".join(c.decode() for c in row) for row in self.screen])
