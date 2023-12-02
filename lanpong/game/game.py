@@ -5,6 +5,26 @@ from itertools import chain
 from collections import namedtuple
 
 
+class Paddle:
+    """
+    Paddle object for pong
+    """
+
+    def __init__(self, height, column):
+        self.height = height
+        self.column = column
+
+
+class Player:
+    """
+    Player object for pong
+    """
+
+    def __init__(self, paddle):
+        self.is_initialized = False
+        self.paddle = paddle
+
+
 class Ball:
     def __init__(self, coords, velocity_x, velocity_y):
         """
@@ -70,26 +90,6 @@ class Ball:
     def keep_within_bounds(self, width, height):
         self.coords[0] = np.clip(self.coords[0], 1, width - 2)
         self.coords[1] = np.clip(self.coords[1], 1, height - 2)
-
-
-class Paddle:
-    """
-    Paddle object for pong
-    """
-
-    def __init__(self, height, column):
-        self.height = height
-        self.column = column
-
-
-class Player:
-    """
-    Player object for pong
-    """
-
-    def __init__(self, paddle):
-        self.is_initialized = False
-        self.paddle = paddle
 
 
 class Game:
