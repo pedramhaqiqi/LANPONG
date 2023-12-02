@@ -185,14 +185,6 @@ class Game:
         Returns the current game state as a single string representing the screen when printed to stdout
         Uses: update() method
         """
-        # TODO: Return game state as string
-        # state = ""
-        # for i in range(self.height):
-        #     for j in range(self.width):
-        #         print(self.screen[i][j])
-        #         state += self.screen[i][j]
-        #     state += "\n"
-
         return (
             "\r\n".join(["".join(c.decode() for c in row) for row in self.screen])
             + "\r\n"
