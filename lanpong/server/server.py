@@ -9,19 +9,14 @@ from lanpong.server.ssh import SSHServer
 
 
 def get_message_screen(message):
-    rows = Game.DEFAULT_HEIGHT
-    cols = Game.DEFAULT_WIDTH
+    screen = Game.get_blank_screen()
+    rows, cols = screen.shape
     assert len(message) < cols - 2
 
-    board = np.full((rows, cols), " ", dtype="S1")
-    board[0, :] = board[-1, :] = "-"
-    board[:, 0] = board[:, -1] = "|"
-    board[0, 0] = board[0, -1] = board[-1, 0] = board[-1, -1] = "+"
-
     start = (cols - len(message)) // 2
-    board[rows // 2, start : start + len(message)] = list(message)
+    screen[rows // 2, start : start + len(message)] = list(message)
 
-    return "\r\n".join(["".join(c.decode() for c in row) for row in board]) + "\r\n"
+    return "\r\n".join(["".join(c.decode() for c in row) for row in screen]) + "\r\n"
 
 
 class Server:
@@ -117,7 +112,7 @@ class Server:
             while True:
                 # Clear screen
                 channel.sendall("\x1b[H\x1b[J")
-                channel.sendall(self.game.get_board())
+                channel.sendall(self.game.get_screen())
                 time.sleep(0.05)
         except Exception as e:
             print(f"Exception: {e}")
