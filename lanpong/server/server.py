@@ -8,6 +8,10 @@ from ..game.game import Game
 from lanpong.server.ssh import SSHServer
 
 
+CLEAR_SCREEN = "\x1b[H\x1b[J"
+HIDE_CURSOR = "\033[?25l"
+
+
 def get_message_screen(message):
     screen = Game.get_blank_screen()
     rows, cols = screen.shape
@@ -19,14 +23,19 @@ def get_message_screen(message):
     return Game.screen_to_tui(screen)
 
 
+def send_frame(channel, frame):
+    return channel.sendall("".join([CLEAR_SCREEN, frame, HIDE_CURSOR]))
+
+
 class Server:
     def __init__(self, key_file_name="test_key") -> None:
         self.server_key = paramiko.RSAKey.from_private_key_file(filename=key_file_name)
         self.connections = []
-        self.waiting_message = get_message_screen(
-            "You are player 1. Waiting for player 2..."
+        self.waiting_screen = get_message_screen(
+            f"You are player 1. Waiting for player 2..."
         )
-        self.game = Game()
+        self.games = []
+        self.games_lock = threading.Lock()
 
     def start_server(self, host="0.0.0.0", port=2222):
         """Starts an SSH server on specified port and address
@@ -41,36 +50,42 @@ class Server:
             server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             server_sock.bind((host, port))
             server_sock.listen(100)
-            game_thread = threading.Thread(target=self.handle_game, args=())
-            game_thread.start()
             print(f"Listening for connection on {host}:{port}")
 
             # Accept multiple connections, thread-out
             while True:
                 client_socket, client_addr = server_sock.accept()
                 print(f"Incoming connection from {client_addr[0]}:{client_addr[1]}")
+                with self.games_lock:
+                    new_game = next(
+                        (game for game in self.games if not game.is_full()), None
+                    )
+                    if new_game is None:
+                        # No game available, create a new one
+                        new_game = Game()
+                        # Initialize client
+                        game_thread = threading.Thread(
+                            target=self.handle_game, args=(new_game,)
+                        )
+                        game_thread.start()
+                        self.games.append(new_game)
+                player_id = new_game.initialize_player()
+                print(f"player id: {player_id}, game started?: {new_game.is_full()}")
                 client_thread = threading.Thread(
-                    target=self.handle_client, args=(client_socket,)
+                    target=self.handle_client, args=(client_socket, new_game, player_id)
                 )
                 client_thread.start()
 
-    def handle_game(self):
+    def handle_game(self, game: Game):
+        game.is_game_started_event.wait()
         while True:
-            if self.game.started:
-                self.game.update_ball()
-                time.sleep(0.05)
+            end_round = game.update_ball()
+            # if end_round:
+            #     current_thread = threading.current_thread()
+            #     current_thread.stop()
+            time.sleep(0.05)
 
-    def broadcast_message(self, message, sender):
-        for client in self.connections:
-            if client != sender:
-                try:
-                    client.send(f"Message from {sender.getpeername()}: {message}\r\n")
-                except socket.error as e:
-                    print(f"Error sending message: {e}\r\n")
-                    client.close()
-                    self.connections.remove(client)
-
-    def handle_client(self, client_socket):
+    def handle_client(self, client_socket, game: Game, player_id):
         transport = paramiko.Transport(client_socket)
         ssh_server = SSHServer()
         transport.add_server_key(self.server_key)
@@ -78,46 +93,43 @@ class Server:
             transport.start_server(server=ssh_server)
         except paramiko.SSHException:
             return
+        finally:
+            # TODO: Clean up game
+            pass
 
         channel = transport.accept(20)
         if channel is None:
             print("No channel.")
+            # TODO: Clean up game
             return
-        # Use a lock to prevent multiple players from deciding they are player 1
-        self.connections.append(channel)
 
         print("Authenticated!")
         channel.send("\r\n")
         channel_file = channel.makefile()
 
-        def handle_input(player_id):
+        def handle_input(player_id, game):
             while True:
                 try:
-                    key = channel_file.read(1).decode()
-                    self.game.update_paddle(player_id, key)
+                    key = channel_file.read(1) if channel.recv_ready() else b""
                 except Exception as e:
                     print(f"Exception: {e}")
                     break
+                game.update_paddle(player_id, key)
+                time.sleep(0.05)
 
         try:
-            player_id = self.game.initialize_player()
             # Show waiting screen until there are two players
-            while player_id == 1 and len(self.connections) < 2:
-                channel.sendall("\x1b[H\x1b[J")
-                channel.sendall(self.waiting_message)
+            while not game.is_full():
+                send_frame(channel, self.waiting_screen)
                 time.sleep(0.5)
-            self.game.started = True
-            input_thread = threading.Thread(target=handle_input, args=(player_id,))
+
+            input_thread = threading.Thread(target=handle_input, args=(player_id, game))
             input_thread.start()
             while True:
-                # Clear screen
-                channel.sendall("\x1b[H\x1b[J")
-                channel.sendall(str(self.game))
+                send_frame(channel, str(game))
                 time.sleep(0.05)
         except Exception as e:
             print(f"Exception: {e}")
-
-        finally:
             if client in self.connections:
                 self.connections.remove(client)
             channel.close()
