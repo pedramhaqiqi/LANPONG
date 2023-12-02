@@ -1,6 +1,7 @@
 import numpy as np
 import threading
 
+from itertools import chain
 from collections import namedtuple
 
 
@@ -125,15 +126,6 @@ class Game:
         self.player1 = Player(self.paddle1)
         self.player2 = Player(self.paddle2)
 
-    @staticmethod
-    def get_blank_screen():
-        """Return a blank screen with no paddles or ball, just the border"""
-        screen = np.full((Game.DEFAULT_HEIGHT, Game.DEFAULT_WIDTH), " ", dtype="S1")
-        screen[0, :] = screen[-1, :] = "-"
-        screen[:, 0] = screen[:, -1] = "|"
-        screen[0, 0] = screen[0, -1] = screen[-1, 0] = screen[-1, -1] = "+"
-        return screen
-
     def initialize_player(self):
         """Initializes a player. Returns non-zero player id, 0 if game is full."""
         with self.player_init_lock:
@@ -180,11 +172,23 @@ class Game:
         # Update new paddle position
         paddle.height = new_height
 
-    def get_screen(self) -> str:
+    def __str__(self):
+        return Game.screen_to_tui(self.screen)
+
+    @staticmethod
+    def get_blank_screen():
+        """Return a blank screen with no paddles or ball, just the border"""
+        screen = np.full((Game.DEFAULT_HEIGHT, Game.DEFAULT_WIDTH), " ", dtype="S1")
+        screen[0, :] = screen[-1, :] = "-"
+        screen[:, 0] = screen[:, -1] = "|"
+        screen[0, 0] = screen[0, -1] = screen[-1, 0] = screen[-1, -1] = "+"
+        return screen
+
+    @staticmethod
+    def screen_to_tui(screen):
         """
-        Returns the current game state as a single string representing the screen when printed to stdout
+        Convert a screen to a TUI representation
+        :param screen: The screen to convert
+        :return: The TUI representation of the screen
         """
-        return (
-            "\r\n".join(["".join(c.decode() for c in row) for row in self.screen])
-            + "\r\n"
-        )
+        return b"".join(b"".join(chain(row, [b"\r", b"\n"])) for row in screen).decode()
