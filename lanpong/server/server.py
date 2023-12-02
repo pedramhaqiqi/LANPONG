@@ -1,11 +1,6 @@
 import socket
 import threading
-import curses
 import time
-import fcntl
-import struct
-import termios
-import sys
 import paramiko
 import numpy as np
 
@@ -13,17 +8,16 @@ from ..game.game import Game
 from lanpong.server.ssh import SSHServer
 
 
-def get_waiting_message():
+def get_message_screen(message):
     rows = Game.DEFAULT_HEIGHT
     cols = Game.DEFAULT_WIDTH
+    assert len(message) < cols - 2
 
     board = np.full((rows, cols), " ", dtype="S1")
     board[0, :] = board[-1, :] = "-"
     board[:, 0] = board[:, -1] = "|"
     board[0, 0] = board[0, -1] = board[-1, 0] = board[-1, -1] = "+"
 
-    message = "You are player 1. Waiting for player 2..."
-    assert len(message) < cols - 2
     start = (cols - len(message)) // 2
     board[rows // 2, start : start + len(message)] = list(message)
 
@@ -34,8 +28,9 @@ class Server:
     def __init__(self, key_file_name="test_key") -> None:
         self.server_key = paramiko.RSAKey.from_private_key_file(filename=key_file_name)
         self.connections = []
-        self.waiting_message = get_waiting_message()
-        self.channel_lock = threading.Lock()
+        self.waiting_message = get_message_screen(
+            "You are player 1. Waiting for player 2..."
+        )
         self.game = Game()
 
     def start_server(self, host="0.0.0.0", port=2222):
@@ -94,9 +89,7 @@ class Server:
             print("No channel.")
             return
         # Use a lock to prevent multiple players from deciding they are player 1
-        with self.channel_lock:
-            self.connections.append(channel)
-            player = len(self.connections) + 1
+        self.connections.append(channel)
 
         print("Authenticated!")
         channel.send("\r\n")
@@ -112,12 +105,12 @@ class Server:
                     break
 
         try:
-            player_id = None
-            while len(self.connections) < 2:
+            player_id = self.game.initialize_player()
+            # Show waiting screen until there are two players
+            while player_id == 1 and len(self.connections) < 2:
                 channel.sendall("\x1b[H\x1b[J")
                 channel.sendall(self.waiting_message)
                 time.sleep(0.5)
-            player_id = self.game.initialize_player()
             self.game.started = True
             input_thread = threading.Thread(target=handle_input, args=(player_id,))
             input_thread.start()

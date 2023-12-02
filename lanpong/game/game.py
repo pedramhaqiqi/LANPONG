@@ -1,12 +1,7 @@
 import numpy as np
+import threading
+
 from collections import namedtuple
-
-
-Ball = namedtuple("Ball", ["coords", "velocity"])
-
-
-def normalize(vec):
-    return vec / np.linalg.norm(vec)
 
 
 class Ball:
@@ -110,6 +105,7 @@ class Game:
         self.height = Game.DEFAULT_HEIGHT
         self.board = np.full((self.height, self.width), " ", dtype="S1")
         self.started = False
+        self.player_init_lock = threading.Lock()
 
         # Draw the board
         for i in range(self.height):
@@ -142,14 +138,15 @@ class Game:
 
     def initialize_player(self):
         """Initializes a player. Returns non-zero player id, 0 if game is full."""
-        if not self.player1.is_initialized:
-            self.player1.is_initialized = True
-            return 1
-        elif not self.player2.is_initialized:
-            self.player2.is_initialized = True
-            return 2
-        else:
-            return 0
+        with self.player_init_lock:
+            if not self.player1.is_initialized:
+                self.player1.is_initialized = True
+                return 1
+            elif not self.player2.is_initialized:
+                self.player2.is_initialized = True
+                return 2
+            else:
+                return 0
 
     def update_ball(self):
         old_coords = self.ball.get_coords().copy()
