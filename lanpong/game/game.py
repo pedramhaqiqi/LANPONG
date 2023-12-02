@@ -10,9 +10,9 @@ class Paddle:
     Paddle object for pong
     """
 
-    def __init__(self, height, column, length=2):
-        self.height = height
-        self.column = column
+    def __init__(self, row, col, length=1):
+        self.row = row
+        self.col = col
         self.length = length
 
 
@@ -22,7 +22,6 @@ class Player:
     """
 
     def __init__(self, paddle):
-        self.is_initialized = False
         self.paddle = paddle
 
 
@@ -67,13 +66,13 @@ class Ball:
     def get_y(self):
         return self.coords[1]
 
-    def check_wall_collision(self, width, height):
+    def handle_wall_collision(self, width, height):
         if self.get_x() <= 0 or self.get_x() >= width - 1:
             self.invert_velocity_x()
         if self.get_y() <= 0 or self.get_y() >= height - 1:
             self.invert_velocity_y()
 
-    def check_paddle_collision(self, left_paddle, right_paddle):
+    def handle_paddle_collision(self, left_paddle, right_paddle):
         """
         Check if the ball has collided with a paddle.
         :param left/right_paddle: The paddle to check collision with.
@@ -81,15 +80,15 @@ class Ball:
         """
         for row_offset in range(left_paddle.length):
             if (
-                left_paddle.height + row_offset == self.get_y()
-                and left_paddle.column + 1 == self.get_x()
+                left_paddle.row + row_offset == self.get_y()
+                and left_paddle.col + 1 == self.get_x()
             ):
                 self.invert_velocity_x()
                 return
         for row_offset in range(right_paddle.length):
             if (
-                right_paddle.height + row_offset == self.get_y()
-                and right_paddle.column - 1 == self.get_x()
+                right_paddle.row + row_offset == self.get_y()
+                and right_paddle.col - 1 == self.get_x()
             ):
                 self.invert_velocity_x()
                 return
@@ -106,13 +105,11 @@ class Game:
 
     DEFAULT_HEIGHT = 24
     DEFAULT_WIDTH = 70
-    DEFAULT_PADDLE_HEIGHT = DEFAULT_HEIGHT // 2
 
     def __init__(self):
         self.width = Game.DEFAULT_WIDTH
         self.height = Game.DEFAULT_HEIGHT
-        self.started = False
-        self.lock = threading.Lock()
+        self.is_game_started_event = threading.Event()
 
         self.ball = Ball(
             [self.width // 2, self.height // 2],
@@ -120,8 +117,8 @@ class Game:
             1,
         )
 
-        self.paddle1 = Paddle(self.height // 2, 1, 2)
-        self.paddle2 = Paddle(self.height // 2, self.width - 2, 2)
+        self.paddle1 = Paddle(self.height // 2, 1, 3)
+        self.paddle2 = Paddle(self.height // 2, self.width - 2, 3)
 
         self.screen = Game.get_blank_screen()
         # Draw the paddles
@@ -130,20 +127,20 @@ class Game:
         # Draw the ball
         self.screen[self.ball.get_y()][self.ball.get_x()] = "*"
 
-        self.player1 = Player(self.paddle1)
-        self.player2 = Player(self.paddle2)
+        self.player1 = self.player2 = None
 
     def draw_paddle(self, paddle):
         for row_offset in range(paddle.length):
-            self.screen[paddle.height + row_offset][paddle.column] = "|"
+            self.screen[paddle.row + row_offset][paddle.col] = "|"
 
     def initialize_player(self):
         """Initializes a player. Returns non-zero player id, 0 if game is full."""
-        if not self.player1.is_initialized:
-            self.player1.is_initialized = True
+        if self.player1 is None:
+            self.player1 = Player(self.paddle1)
             return 1
-        elif not self.player2.is_initialized:
-            self.player2.is_initialized = True
+        elif self.player2 is None:
+            self.player2 = Player(self.paddle2)
+            self.is_game_started_event.set()
             return 2
         else:
             return 0
@@ -152,8 +149,8 @@ class Game:
         old_coords = self.ball.get_coords().copy()
 
         self.ball.update_position()
-        self.ball.check_paddle_collision(self.player1.paddle, self.player2.paddle)
-        self.ball.check_wall_collision(self.width, self.height)
+        self.ball.handle_paddle_collision(self.player1.paddle, self.player2.paddle)
+        self.ball.handle_wall_collision(self.width, self.height)
 
         self.ball.keep_within_bounds(self.width, self.height)
 
@@ -167,43 +164,38 @@ class Game:
         """Updates the paddle positions"""
         player = self.player1 if player_number == 1 else self.player2
         paddle = player.paddle
-        old_height = player.paddle.height
-        new_height = old_height
+        old_height = player.paddle.row
+        new_row = old_height
 
         # Clear old paddle
         for row_offset in range(paddle.length):
-            self.screen[old_height + row_offset][paddle.column] = " "
+            self.screen[old_height + row_offset][paddle.col] = " "
 
         # Only update paddle position if the key is valid and the paddle is not at the edge of the screen
         if key == "w" and old_height > 1:
-            new_height = old_height - 1
+            new_row = old_height - 1
         elif key == "s" and old_height < self.height - paddle.length - 1:
-            new_height = old_height + 1
+            new_row = old_height + 1
         # Update the paddle's height to the new position
-        paddle.height = new_height
+        paddle.row = new_row
 
         # Draw new paddle
         for row_offset in range(paddle.length):
             # We must also ensure that the paddle is drawn fully in the new position.
-            self.screen[new_height + row_offset][paddle.column] = "|"
+            self.screen[new_row + row_offset][paddle.col] = "|"
 
     def __str__(self):
         return Game.screen_to_tui(self.screen)
 
-    # def (self, callback):
-
     def is_full(self):
-        return (
-            self.player1.is_initialized is True and self.player2.is_initialized is True
-        )
+        return self.player1 is not None and self.player2 is not None
 
     @staticmethod
     def get_blank_screen():
         """Return a blank screen with no paddles or ball, just the border"""
         screen = np.full((Game.DEFAULT_HEIGHT, Game.DEFAULT_WIDTH), " ", dtype="S1")
         screen[0, :] = screen[-1, :] = "-"
-        screen[:, 0] = screen[:, -1] = "|"
-        screen[0, 0] = screen[0, -1] = screen[-1, 0] = screen[-1, -1] = "+"
+        screen[:, 0] = screen[:, -1] = "+"
         return screen
 
     @staticmethod
