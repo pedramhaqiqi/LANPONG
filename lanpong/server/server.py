@@ -24,9 +24,10 @@ class Server:
         self.server_key = paramiko.RSAKey.from_private_key_file(filename=key_file_name)
         self.connections = []
         self.waiting_message = get_message_screen(
-            "You are player 1. Waiting for player 2..."
+            f"You are player 1. Waiting for player 2..."
         )
-        self.game = Game()
+        self.games = []
+        self.games_lock = threading.Lock()
 
     def start_server(self, host="0.0.0.0", port=2222):
         """Starts an SSH server on specified port and address
@@ -41,36 +42,54 @@ class Server:
             server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             server_sock.bind((host, port))
             server_sock.listen(100)
-            game_thread = threading.Thread(target=self.handle_game, args=())
-            game_thread.start()
             print(f"Listening for connection on {host}:{port}")
 
             # Accept multiple connections, thread-out
             while True:
                 client_socket, client_addr = server_sock.accept()
+                new_game = None
+                player_id = None
+                # Find a game that is not full, otherwise create a new game
+                with self.games_lock:
+                    print(self.games)
+                    for game in self.games:
+                        with game.lock:
+                            if not game.is_full():
+                                new_game = game
+                                player_id = new_game.initialize_player()
+                                break
+                    if new_game is None:
+                        new_game = Game()
+                        # initialize client
+                        player_id = new_game.initialize_player()
+                        game_thread = threading.Thread(
+                            target=self.handle_game, args=(new_game,)
+                        )
+                        game_thread.start()
+                        self.games.append(new_game)
+                print("player id")
+                print(player_id)
+                print("Game started:")
+                print(new_game.is_full())
                 print(f"Incoming connection from {client_addr[0]}:{client_addr[1]}")
                 client_thread = threading.Thread(
-                    target=self.handle_client, args=(client_socket,)
+                    target=self.handle_client, args=(client_socket, new_game, player_id)
                 )
                 client_thread.start()
 
-    def handle_game(self):
+    def handle_game(self, game: Game):
+        game.thread = threading.current_thread()
         while True:
-            if self.game.started:
-                self.game.update_ball()
-                time.sleep(0.05)
+            if game.is_full():
+                game.started = True
+                if game.started:
+                    end_round = game.update_ball()
+                    # if end_round:
+                    #     current_thread = threading.current_thread()
+                    #     current_thread.stop()
+                    time.sleep(0.05)
 
-    def broadcast_message(self, message, sender):
-        for client in self.connections:
-            if client != sender:
-                try:
-                    client.send(f"Message from {sender.getpeername()}: {message}\r\n")
-                except socket.error as e:
-                    print(f"Error sending message: {e}\r\n")
-                    client.close()
-                    self.connections.remove(client)
-
-    def handle_client(self, client_socket):
+    def handle_client(self, client_socket, game: Game, player_id):
         transport = paramiko.Transport(client_socket)
         ssh_server = SSHServer()
         transport.add_server_key(self.server_key)
@@ -78,41 +97,43 @@ class Server:
             transport.start_server(server=ssh_server)
         except paramiko.SSHException:
             return
+        finally:
+            # TODO: Clean up game
+            pass
 
         channel = transport.accept(20)
         if channel is None:
             print("No channel.")
+            # TODO: Clean up game
             return
-        # Use a lock to prevent multiple players from deciding they are player 1
-        self.connections.append(channel)
 
         print("Authenticated!")
         channel.send("\r\n")
         channel_file = channel.makefile()
 
-        def handle_input(player_id):
+        def handle_input(player_id, game):
             while True:
                 try:
                     key = channel_file.read(1).decode()
-                    self.game.update_paddle(player_id, key)
+                    game.update_paddle(player_id, key)
                 except Exception as e:
                     print(f"Exception: {e}")
                     break
 
         try:
-            player_id = self.game.initialize_player()
             # Show waiting screen until there are two players
-            while player_id == 1 and len(self.connections) < 2:
+            while game.started is False:
                 channel.sendall("\x1b[H\x1b[J")
                 channel.sendall(self.waiting_message)
                 time.sleep(0.5)
-            self.game.started = True
-            input_thread = threading.Thread(target=handle_input, args=(player_id,))
+
+            input_thread = threading.Thread(target=handle_input, args=(player_id, game))
             input_thread.start()
             while True:
                 # Clear screen
+                #   Check at start of loop if a player disconnect, disconnect both
                 channel.sendall("\x1b[H\x1b[J")
-                channel.sendall(str(self.game))
+                channel.sendall(str(game))
                 time.sleep(0.05)
         except Exception as e:
             print(f"Exception: {e}")
