@@ -127,7 +127,7 @@ class Game:
 
     @staticmethod
     def get_blank_screen():
-        """Return a blank screen with no paddles or ball"""
+        """Return a blank screen with no paddles or ball, just the border"""
         screen = np.full((Game.DEFAULT_HEIGHT, Game.DEFAULT_WIDTH), " ", dtype="S1")
         screen[0, :] = screen[-1, :] = "-"
         screen[:, 0] = screen[:, -1] = "|"
