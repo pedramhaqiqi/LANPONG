@@ -103,19 +103,8 @@ class Game:
     def __init__(self):
         self.width = Game.DEFAULT_WIDTH
         self.height = Game.DEFAULT_HEIGHT
-        self.board = np.full((self.height, self.width), " ", dtype="S1")
         self.started = False
         self.player_init_lock = threading.Lock()
-
-        # Draw the board
-        for i in range(self.height):
-            for j in range(self.width):
-                if i == 0 or i == self.height - 1:
-                    self.board[i][j] = "-"
-                elif j == 0 or j == self.width - 1:
-                    self.board[i][j] = "|"
-                else:
-                    self.board[i][j] = " "
 
         self.ball = Ball(
             [self.width // 2, self.height // 2],
@@ -126,15 +115,24 @@ class Game:
         self.paddle1 = Paddle(self.height // 2, 1)
         self.paddle2 = Paddle(self.height // 2, self.width - 2)
 
+        self.screen = Game.get_blank_screen()
         # Draw the paddles
-        self.board[self.paddle1.height][self.paddle1.column] = "|"
-        self.board[self.paddle2.height][self.paddle2.column] = "|"
-
+        self.screen[self.paddle1.height][self.paddle1.column] = "|"
+        self.screen[self.paddle2.height][self.paddle2.column] = "|"
         # Draw the ball
-        self.board[self.ball.get_y()][self.ball.get_x()] = "*"
+        self.screen[self.ball.get_y()][self.ball.get_x()] = "*"
 
         self.player1 = Player(self.paddle1)
         self.player2 = Player(self.paddle2)
+
+    @staticmethod
+    def get_blank_screen():
+        """Return a blank screen with no paddles or ball"""
+        screen = np.full((Game.DEFAULT_HEIGHT, Game.DEFAULT_WIDTH), " ", dtype="S1")
+        screen[0, :] = screen[-1, :] = "-"
+        screen[:, 0] = screen[:, -1] = "|"
+        screen[0, 0] = screen[0, -1] = screen[-1, 0] = screen[-1, -1] = "+"
+        return screen
 
     def initialize_player(self):
         """Initializes a player. Returns non-zero player id, 0 if game is full."""
@@ -157,10 +155,10 @@ class Game:
         self.ball.keep_within_bounds(self.width, self.height)
 
         # Clear the old position of the ball
-        self.board[old_coords[1]][old_coords[0]] = " "
+        self.screen[old_coords[1]][old_coords[0]] = " "
 
         # Draw the ball at its new position
-        self.board[self.ball.get_y()][self.ball.get_x()] = "*"
+        self.screen[self.ball.get_y()][self.ball.get_x()] = "*"
 
     def update_paddle(self, player_number: int, key):
         """Updates the paddle positions"""
@@ -169,37 +167,33 @@ class Game:
         old_height = player.paddle.height
         new_height = old_height
 
-        # Only update paddle position if the key is valid and the paddle is not at the edge of the board
+        # Only update paddle position if the key is valid and the paddle is not at the edge of the screen
         if key == "w" and old_height > 1:
             new_height = old_height - 1
         elif key == "s" and old_height < self.height - 2:
             new_height = old_height + 1
 
         # Clear old paddle
-        self.board[old_height][paddle.column] = " "
+        self.screen[old_height][paddle.column] = " "
         # Draw new paddle
-        self.board[new_height][paddle.column] = "|"
+        self.screen[new_height][paddle.column] = "|"
         # Update new paddle position
         paddle.height = new_height
 
-    def get_board(self) -> str:
+    def get_screen(self) -> str:
         """
-        Returns the current game state as a single string representing the board when printed to stdout
+        Returns the current game state as a single string representing the screen when printed to stdout
         Uses: update() method
         """
         # TODO: Return game state as string
         # state = ""
         # for i in range(self.height):
         #     for j in range(self.width):
-        #         print(self.board[i][j])
-        #         state += self.board[i][j]
+        #         print(self.screen[i][j])
+        #         state += self.screen[i][j]
         #     state += "\n"
 
         return (
-            "\r\n".join(["".join(c.decode() for c in row) for row in self.board])
+            "\r\n".join(["".join(c.decode() for c in row) for row in self.screen])
             + "\r\n"
         )
-
-        # print("\x1b[H\x1b[J")
-        # for row in self.board:
-        #     print("".join(row))
