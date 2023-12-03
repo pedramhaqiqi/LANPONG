@@ -117,7 +117,7 @@ class Game:
     def __init__(self, rows=DEFAULT_ROWS, cols=DEFAULT_COLS):
         self.nrows = rows
         self.ncols = cols
-        
+
         self.is_game_started_event = threading.Event()
 
         self.ball = Ball(
