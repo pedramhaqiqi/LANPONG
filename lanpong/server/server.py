@@ -63,12 +63,12 @@ class Server:
                     if new_game is None:
                         # No game available, create a new one
                         new_game = Game()
+                        self.games.append(new_game)
                         # Initialize client
                         game_thread = threading.Thread(
                             target=self.handle_game, args=(new_game,)
                         )
                         game_thread.start()
-                        self.games.append(new_game)
                 player_id = new_game.initialize_player()
                 print(f"player id: {player_id}, game started?: {new_game.is_full()}")
                 client_thread = threading.Thread(
@@ -77,12 +77,12 @@ class Server:
                 client_thread.start()
 
     def handle_game(self, game: Game):
+        """
+        Handles the non-paddle game updates (mainly the ball)
+        """
         game.is_game_started_event.wait()
-        while True:
-            end_round = game.update_ball()
-            # if end_round:
-            #     current_thread = threading.current_thread()
-            #     current_thread.stop()
+        while game.loser == 0:
+            game.update_ball()
             time.sleep(0.05)
 
     def handle_client(self, client_socket, game: Game, player_id):
@@ -125,11 +125,16 @@ class Server:
 
             input_thread = threading.Thread(target=handle_input, args=(player_id, game))
             input_thread.start()
-            while True:
+            while game.loser == 0:
                 send_frame(channel, str(game))
                 time.sleep(0.05)
+            # Game is over
+            winner = 1 if game.loser == 2 else 2
+            send_frame(channel, get_message_screen(f"Player {winner} wins!"))
         except Exception as e:
             print(f"Exception: {e}")
             if client in self.connections:
                 self.connections.remove(client)
+        finally:
             channel.close()
+            client_socket.close()
