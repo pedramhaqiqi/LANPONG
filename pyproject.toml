@@ -2,7 +2,7 @@
 name = "lanpong"
 version = "0.1.0"
 description = ""
-authors = ["pedramhaqiqi", "sam propukchuk", "Mark"]
+authors = ["Pedram Haqiqi", "Sam Prokopchuk", "Mark Chen"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
