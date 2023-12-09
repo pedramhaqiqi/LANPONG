@@ -104,6 +104,7 @@ class Server:
             return
 
         print("Authenticated!")
+        game.set_player_ready(player_id, True)
         channel.send("\r\n")
         channel_file = channel.makefile()
 

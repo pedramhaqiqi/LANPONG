@@ -24,6 +24,7 @@ class Player:
 
     def __init__(self, paddle):
         self.paddle = paddle
+        self.is_ready = False
 
 
 class Ball:
@@ -150,10 +151,21 @@ class Game:
             return 1
         elif self.player2 is None:
             self.player2 = Player(self.paddle2)
-            self.is_game_started_event.set()
             return 2
         else:
             return 0
+
+    def set_player_ready(self, player_id, is_ready):
+        """Sets the player status to either 'ready' or 'not ready'"""
+        player = self.player1 if player_id == 1 else self.player2
+        print(f"Player {player_id} is : {player}")
+        print(f"self.player1: {self.player1}")
+        print(f"self.player2: {self.player2}")
+        player.is_ready = is_ready
+        if self.player1.is_ready and self.player2.is_ready:
+            self.is_game_started_event.set()
+        # else:
+        #     self.is_game_started_event.clear()
 
     def update_ball(self):
         if self.loser != 0:
