@@ -1,6 +1,6 @@
 """Entry point for lanpong."""
 
-from lanpong.main import main  # pragma: no cover
+from lanpong.main import main
 
-if __name__ == "__main__":  # pragma: no cover
+if __name__ == "__main__":
     main()
