@@ -8,7 +8,7 @@ from threading import Lock
 from sortedcontainers import SortedDict, SortedSet
 
 
-class Leaderboard:
+class ThreadSafeLeaderboard:
     """A thread-safe leaderboard."""
 
     def __init__(self, filename="leaderboard.csv"):
