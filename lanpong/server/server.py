@@ -6,6 +6,7 @@ import numpy as np
 
 from ..game.game import Game
 from lanpong.server.ssh import SSHServer
+from lanpong.server.ping import ping_client
 
 
 CLEAR_SCREEN = "\x1b[H\x1b[J"
@@ -13,7 +14,7 @@ HIDE_CURSOR = "\033[?25l"
 
 
 def get_message_screen(message):
-    screen = Game.get_blank_screen()
+    screen = Game.get_blank_screen(stats_height=0)
     rows, cols = screen.shape
     assert len(message) < cols - 2
 
@@ -86,6 +87,16 @@ class Server:
             time.sleep(0.05)
 
     def handle_client(self, client_socket, game: Game, player_id):
+        def handle_input(player_id, game):
+            while True:
+                try:
+                    key = channel_file.read(1) if channel.recv_ready() else b""
+                except Exception as e:
+                    print(f"Exception: {e}")
+                    break
+                game.update_paddle(player_id, key)
+                time.sleep(0.05)
+
         transport = paramiko.Transport(client_socket)
         ssh_server = SSHServer()
         transport.add_server_key(self.server_key)
@@ -108,16 +119,6 @@ class Server:
         channel.send("\r\n")
         channel_file = channel.makefile()
 
-        def handle_input(player_id, game):
-            while True:
-                try:
-                    key = channel_file.read(1) if channel.recv_ready() else b""
-                except Exception as e:
-                    print(f"Exception: {e}")
-                    break
-                game.update_paddle(player_id, key)
-                time.sleep(0.05)
-
         try:
             # Show waiting screen until there are two players
             while not game.is_full():
@@ -128,6 +129,7 @@ class Server:
             input_thread.start()
             while game.loser == 0:
                 send_frame(channel, str(game))
+                # ping_client(channel.getpeername()[0], player_id)
                 time.sleep(0.05)
             # Game is over
             winner = 1 if game.loser == 2 else 2
