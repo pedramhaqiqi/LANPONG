@@ -7,7 +7,7 @@ import numpy as np
 from ..game.game import Game
 from lanpong.server.ssh import SSHServer
 from lanpong.server.db import DB
-
+import re
 
 CLEAR_SCREEN = "\x1b[H\x1b[J"
 HIDE_CURSOR = "\033[?25l"
@@ -128,6 +128,57 @@ class Server:
         channel.send("\r\n")
         channel_file = channel.makefile()
 
+        def send_menu():
+            channel.sendall("\x1b[H\x1b[J")
+            menu = (
+                "Welcome to the SSH Game Server!\n\r"
+                "1. Register an account\n\r"
+                "2. Login\n\r"
+                "Choose an option (1 or 2):\n\r"
+            )
+            channel.sendall(menu)
+
+        def register_account():
+            channel.sendall("\x1b[H\x1b[J")
+            channel.sendall("Enter your desired username: ")
+
+            username = self.echo_line(channel_file, channel)
+
+            while self.db.is_username_valid(username) is False:
+                channel.sendall("\x1b[H\x1b[J")
+                channel.sendall(
+                    "Username either already exists or contains invalid characters( No white spaces or empty string). Please try another: "
+                )
+                username = self.echo_line(channel_file, channel)
+
+            channel.sendall("\x1b[H\x1b[J")
+            channel.sendall("Enter your password: ")
+            password = self.echo_line(channel_file, channel)
+
+            self.db.create_user(username, password)
+            channel.sendall("\x1b[H\x1b[J")
+            channel.sendall(
+                "Account registered successfully. Press any key to continue.\r\n"
+            )
+            channel_file.read(1).decode()
+
+        def login():
+            channel.sendall("\x1b[H\x1b[J")
+            channel.sendall("Enter your username: ")
+            username = self.echo_line(channel_file, channel)
+            channel.sendall("\x1b[H\x1b[J")
+            channel.sendall("Enter your password: ")
+            password = self.echo_line(channel_file, channel)
+            user = self.db.login(username, password)
+            channel.sendall("\x1b[H\x1b[J")
+            if not user:
+                channel.sendall("Invalid credentials. ")
+            else:
+                channel.sendall("Login successful. ")
+            channel.sendall("Press any key to continue.\r\n")
+            channel_file.read(1).decode()
+            return user
+
         def handle_input(player_id, game):
             while True:
                 try:
@@ -139,6 +190,21 @@ class Server:
                 time.sleep(0.05)
 
         try:
+            while True:
+                send_menu()
+                choice = channel_file.read(1).decode()
+
+                if choice == "1":
+                    register_account()
+                elif choice == "2":
+                    user = login()
+                    if user:
+                        break
+                else:
+                    channel.sendall("Invalid credentials. Please try again.\r\n")
+
+            # Show leaderboard and match making option screen
+
             # Show waiting screen until there are two players
             while not game.is_full():
                 send_frame(channel, self.waiting_screen)
@@ -152,8 +218,10 @@ class Server:
             # Game is over
             winner = 1 if game.loser == 2 else 2
             send_frame(channel, get_message_screen(f"Player {winner} wins!"))
+
         except Exception as e:
             print(f"Exception: {e}")
         finally:
+            # remove client from connections
             channel.close()
             client_socket.close()

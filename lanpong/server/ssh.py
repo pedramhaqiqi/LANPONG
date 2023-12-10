@@ -21,6 +21,7 @@ class SSHServer(paramiko.ServerInterface):
         # if (username == "admin") and (password == "password"):
         #     print("Password accepted")
         #     return paramiko.AUTH_SUCCESSFUL
+        print(username, password)
         return paramiko.AUTH_SUCCESSFUL
 
     def get_banner(self):
