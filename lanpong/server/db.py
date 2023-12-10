@@ -121,6 +121,19 @@ class DB:
                     return user
         return None
 
+    def get_top_users(self, num):
+        """
+        Get the top users based on their score.
+
+        Args:
+            num (int): The number of users to return.
+
+        Returns:
+            list: A list of the top users.
+        """
+        with self.lock:
+            return sorted(self.users, key=lambda x: x["score"], reverse=True)[:num]
+
 
 """
 # Example usage:

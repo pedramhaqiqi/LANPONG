@@ -12,6 +12,15 @@ import re
 CLEAR_SCREEN = "\x1b[H\x1b[J"
 HIDE_CURSOR = "\033[?25l"
 
+LOGO_ASCII = """\
+ _       ___   _   _ ______ _____ _   _ _____ 
+| |     / _ \ | \ | || ___ \  _  | \ | |  __ \\
+| |    / /_\ \|  \| || |_/ / | | |  \| | |  \/
+| |    |  _  || . ` ||  __/| | | | . ` | | __ 
+| |____| | | || |\  || |   \ \_/ / |\  | |_\ \\
+\_____/\_| |_/\_| \_/\_|    \___/\_| \_/\____/""".splitlines()
+assert all(len(line) == len(LOGO_ASCII[0]) for line in LOGO_ASCII)
+
 
 def get_message_screen(message):
     screen = Game.get_blank_screen()
@@ -26,6 +35,33 @@ def get_message_screen(message):
 
 def send_frame(channel, frame):
     return channel.sendall("".join([CLEAR_SCREEN, frame, HIDE_CURSOR]))
+
+
+def get_lobby_screen(db, username=""):
+    screen = Game.get_blank_screen()
+    rows, cols = screen.shape
+
+    assert len(LOGO_ASCII[0]) < cols - 2
+    for i, line in enumerate(LOGO_ASCII):
+        screen[1 + i, 1 : len(line) + 1] = list(line)
+    current_row = 1 + len(LOGO_ASCII) + 1
+
+    for i, line in enumerate(
+        [f"Welcome to LAN PONG, {username}!", "Leaderboard:"]
+        + [
+            f"{i + 1}. {user['username']} - {user['score']}"
+            for i, user in enumerate(db.get_top_users(10))
+        ] + ["1. Matchmaking", "2. Public key configuration"]
+    ):
+        screen[current_row + i, 1 : len(line) + 1] = list(line)
+
+    return Game.screen_to_tui(screen)
+
+def wait_for_char(channel_file, valid_chars):
+    while True:
+        char = channel_file.read(1).decode()
+        if char in valid_chars:
+            return char
 
 
 class Server:
@@ -58,23 +94,8 @@ class Server:
             while True:
                 client_socket, client_addr = server_sock.accept()
                 print(f"Incoming connection from {client_addr[0]}:{client_addr[1]}")
-                with self.games_lock:
-                    new_game = next(
-                        (game for game in self.games if not game.is_full()), None
-                    )
-                    if new_game is None:
-                        # No game available, create a new one
-                        new_game = Game()
-                        self.games.append(new_game)
-                        # Initialize client
-                        game_thread = threading.Thread(
-                            target=self.handle_game, args=(new_game,)
-                        )
-                        game_thread.start()
-                player_id = new_game.initialize_player()
-                print(f"player id: {player_id}, game started?: {new_game.is_full()}")
                 client_thread = threading.Thread(
-                    target=self.handle_client, args=(client_socket, new_game, player_id)
+                    target=self.handle_client, args=(client_socket,)
                 )
                 client_thread.start()
 
@@ -105,80 +126,85 @@ class Server:
                 channel.sendall(char)
         return line
 
-    def handle_client(self, client_socket, game: Game, player_id):
-        transport = paramiko.Transport(client_socket)
-        ssh_server = SSHServer()
-        transport.add_server_key(self.server_key)
+    def handle_client(self, client_socket):
         try:
+            transport = paramiko.Transport(client_socket)
+            ssh_server = SSHServer()
+            transport.add_server_key(self.server_key)
             transport.start_server(server=ssh_server)
-        except paramiko.SSHException:
-            return
-        finally:
-            # TODO: Clean up game
-            pass
-        channel = transport.accept(20)
-        if channel is None:
-            print("No channel.")
-            # TODO: Clean up game
-            return
+            channel = transport.accept(20)
+            if channel is None:
+                raise ValueError("No channel")
+            user = ssh_server.user
+            channel.send("\r\n")
+            channel_file = channel.makefile()
 
-        print("Authenticated!")
-        user = ssh_server.user
-        game.set_player_ready(player_id, True)
-        channel.send("\r\n")
-        channel_file = channel.makefile()
-
-        def register_account():
-            channel.sendall("\x1b[H\x1b[J")
-            channel.sendall(
-                "Welcome to LAN PONG!\r\n"
-                "Please create an account.\r\n"
-                "Enter your desired username: "
-            )
-
-            username = self.echo_line(channel_file, channel)
-
-            while self.db.is_username_valid(username) is False:
+            def register_account():
                 channel.sendall("\x1b[H\x1b[J")
                 channel.sendall(
-                    "Username either already exists or contains invalid characters( No white spaces or empty string).\r\n"
-                    "Please enter another username: "
+                    "Welcome to LAN PONG!\r\n"
+                    "Please create an account.\r\n"
+                    "Enter your desired username: "
                 )
+
                 username = self.echo_line(channel_file, channel)
 
-            channel.sendall("\x1b[H\x1b[J")
-            channel.sendall("Enter your password: ")
-            password = self.echo_line(channel_file, channel)
+                while self.db.is_username_valid(username) is False:
+                    channel.sendall("\x1b[H\x1b[J")
+                    channel.sendall(
+                        "Username either already exists or contains invalid characters( No white spaces or empty string).\r\n"
+                        "Please enter another username: "
+                    )
+                    username = self.echo_line(channel_file, channel)
 
-            self.db.create_user(username, password)
-            channel.sendall("\x1b[H\x1b[J")
-            channel.sendall(
-                "Account registered successfully. Please login with your credentials.\r\n"
-            )
-            channel_file.read(1).decode()
+                channel.sendall("\x1b[H\x1b[J")
+                channel.sendall("Enter your password: ")
+                password = self.echo_line(channel_file, channel)
 
-        def handle_input(player_id, game):
-            while True:
-                try:
-                    key = channel_file.read(1) if channel.recv_ready() else b""
-                except Exception as e:
-                    print(f"Exception: {e}")
-                    break
-                game.update_paddle(player_id, key)
-                time.sleep(0.05)
+                self.db.create_user(username, password)
+                channel.sendall("\x1b[H\x1b[J")
+                channel.sendall(
+                    "Account registered successfully. Please login with your credentials.\r\n"
+                )
+                channel_file.read(1).decode()
 
-        def user_cleanup():
-            # remove client from connections
-            channel.close()
-            client_socket.close()
+            def handle_input(player_id, game):
+                while True:
+                    try:
+                        key = channel_file.read(1) if channel.recv_ready() else b""
+                    except Exception as e:
+                        print(f"Exception: {e}")
+                        break
+                    game.update_paddle(player_id, key)
+                    time.sleep(0.05)
 
-        try:
-            # if username is new prompt to register
+            # If username is new prompt to register
             if user["username"] == "new":
                 register_account()
-                user_cleanup()
+                return
 
-            # Show leaderboard and match making option screen
+            # Show lobby and match making option screen
+            send_frame(channel, get_lobby_screen(self.db, user["username"]))
+            while (char := wait_for_char(channel_file, {"1", "2"})) == "2":
+                # Public key configuration
+                pass
+
+            with self.games_lock:
+                new_game = next(
+                    (game for game in self.games if not game.is_full()), None
+                )
+                if new_game is None:
+                    # No game available, create a new one
+                    new_game = Game()
+                    self.games.append(new_game)
+                    # Initialize client
+                    game_thread = threading.Thread(
+                        target=self.handle_game, args=(new_game,)
+                    )
+                    game_thread.start()
+            game = new_game
+            player_id = new_game.initialize_player()
+            print(f"player id: {player_id}, game started?: {new_game.is_full()}")
 
             # Show waiting screen until there are two players
             while not game.is_full():
@@ -193,9 +219,9 @@ class Server:
             # Game is over
             winner = 1 if game.loser == 2 else 2
             send_frame(channel, get_message_screen(f"Player {winner} wins!"))
-
         except Exception as e:
             print(f"Exception: {e}")
         finally:
-            # remove client from connections
-            user_cleanup()
+            if channel is not None:
+                channel.close()
+            client_socket.close()
