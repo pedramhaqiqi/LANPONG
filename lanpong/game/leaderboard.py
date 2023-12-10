@@ -41,13 +41,13 @@ class ThreadSafeLeaderboard:
                     del self._score_to_names[self._name_to_score[name]]
                 del self._name_to_score[name]
 
-    def get_top(self, n):
-        with self._lock:
-            return islice(chain.from_iterable(self._score_to_names.values()), n)
-
     def get_score(self, name):
         with self._lock:
             return self._name_to_score[name]
+
+    def get_top(self, n):
+        with self._lock:
+            return islice(chain.from_iterable(self._score_to_names.values()), n)
 
     def save(self):
         with self._lock:
