@@ -1,3 +1,4 @@
+import random
 import numpy as np
 import threading
 
@@ -119,6 +120,7 @@ class Game:
     def __init__(self, rows=DEFAULT_ROWS, cols=DEFAULT_COLS, stats_height=STATS_HEIGHT):
         self.nrows = rows
         self.ncols = cols
+        self.score = [0, 0]
 
         self.is_game_started_event = threading.Event()
 
@@ -147,6 +149,25 @@ class Game:
         self.player1 = self.player2 = None
         self.loser = 0
 
+    def _reset_paddles(self):
+        """Resets the paddles to their original positions"""
+        self.paddle1.row = self.nrows // 2
+        self.paddle2.row = self.nrows // 2
+        self.screen[1 : self.nrows - 1, 2] = self.screen[1 : self.nrows - 1, -2] = b" "
+
+    def _reset_ball(self):
+        """Resets the ball to its original position"""
+        self.ball.row = self.nrows // 2
+        self.ball.col = self.ncols // 2
+        choice = random.choice([-1, 1])
+        self.ball.row_velocity *= choice
+        self.ball.col_velocity *= choice
+
+    def reset_board(self):
+        """Resets the board to its original state"""
+        self._reset_paddles()
+        self._reset_ball()
+
     def draw_paddle(self, paddle):
         self.screen[paddle.row : paddle.row + paddle.length, paddle.col] = b"|"
 
@@ -172,6 +193,20 @@ class Game:
         # else:
         #     self.is_game_started_event.clear()
 
+    def update_score(self, player_id):
+        """Updates the score of the player"""
+        if player_id != 0:
+            self.score[player_id - 1] += 1
+            self.check_for_winner()
+            self.reset_board()
+
+    def check_for_winner(self):
+        """Checks if there is a winner and updates the screen"""
+        if self.score[0] >= 5:
+            self.loser = 2
+        elif self.score[1] >= 5:
+            self.loser = 1
+
     def update_ball(self):
         if self.loser != 0:
             # Game is over, don't update anything
@@ -180,8 +215,9 @@ class Game:
         self.screen[self.ball.get_row()][self.ball.get_col()] = b" "
 
         self.ball.update_position()
-        # self.loser = self.ball.handle_wall_collision(self.nrows, self.ncols)
-        self.ball.handle_wall_collision(self.nrows, self.ncols)
+        score = self.ball.handle_wall_collision(self.nrows, self.ncols)
+        if score != 0:
+            self.update_score(score)
 
         self.ball.handle_paddle_collision(self.player1.paddle, self.player2.paddle)
 
@@ -189,6 +225,7 @@ class Game:
 
         # Update the ball position on the screen
         self.screen[self.ball.get_row()][self.ball.get_col()] = Ball.SYMBOL
+        return 0
 
     def update_paddle(self, player_number: int, key):
         """Updates the paddle positions"""

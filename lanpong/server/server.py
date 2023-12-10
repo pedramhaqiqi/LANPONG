@@ -113,7 +113,6 @@ class Server:
             print("No channel.")
             # TODO: Clean up game
             return
-
         print("Authenticated!")
         game.set_player_ready(player_id, True)
         channel.send("\r\n")
