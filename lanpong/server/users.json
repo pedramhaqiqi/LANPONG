@@ -10,5 +10,23 @@
     "username": "jane_doe",
     "password": "securepass",
     "score": 150
+  },
+  {
+    "id": 3,
+    "username": "mark",
+    "password": "123",
+    "score": 0
+  },
+  {
+    "id": 4,
+    "username": "new",
+    "password": "",
+    "score": 0
+  },
+  {
+    "id": 5,
+    "username": "joemama",
+    "password": "mom",
+    "score": 0
   }
 ]

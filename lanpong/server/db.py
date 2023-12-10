@@ -2,6 +2,7 @@ import json
 import threading
 from pathlib import Path
 import os
+import re
 
 
 class DB:
@@ -14,6 +15,9 @@ class DB:
         """
         self.filename = filename
         self.lock = threading.Lock()
+        self.path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), self.filename
+        )
         self.users = self.load_db()
 
     def load_db(self):
@@ -23,20 +27,19 @@ class DB:
         Returns:
             list: List of user objects.
         """
-        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), self.filename)
-        if not Path(path).is_file():
+        if not Path(self.path).is_file():
             return []
-        with open(path, "r") as file:
+        with open(self.path, "r") as file:
             return json.load(file)
 
     def save_db(self):
         """
         Save the user data to the JSON file.
         """
-        with open(self.filename, "w") as file:
+        with open(self.path, "w") as file:
             json.dump(self.users, file, indent=2)
 
-    def is_unique_username(self, username):
+    def is_username_valid(self, username):
         """
         Check if the given username is unique in the user list.
 
@@ -46,6 +49,9 @@ class DB:
         Returns:
             bool: True if the username is unique, False otherwise.
         """
+        if username == "" or re.search(r"\s", username):
+            return False
+
         for user in self.users:
             if user["username"] == username:
                 return False
@@ -67,7 +73,7 @@ class DB:
             raise ValueError("Username and password are required.")
 
         with self.lock:
-            if not self.is_unique_username(username):
+            if not self.is_username_valid(username):
                 raise ValueError("Username already exists.")
 
             new_user = {
@@ -98,6 +104,23 @@ class DB:
                     self.save_db()
                     return
             raise ValueError(f"User with ID {user_id} not found.")
+
+    def login(self, username, password):
+        """
+        Attempt to authenticate a user with the provided username and password.
+
+        Args:
+            username (str): The username to authenticate.
+            password (str): The password to authenticate.
+
+        Returns:
+            dict: User information if authentication is successful, None otherwise.
+        """
+        with self.lock:
+            for user in self.users:
+                if user["username"] == username and user["password"] == password:
+                    return user
+        return None
 
 
 """

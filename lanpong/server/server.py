@@ -7,7 +7,7 @@ import numpy as np
 from ..game.game import Game
 from lanpong.server.ssh import SSHServer
 from lanpong.server.db import DB
-
+import re
 
 CLEAR_SCREEN = "\x1b[H\x1b[J"
 HIDE_CURSOR = "\033[?25l"
@@ -116,7 +116,6 @@ class Server:
         finally:
             # TODO: Clean up game
             pass
-
         channel = transport.accept(20)
         if channel is None:
             print("No channel.")
@@ -124,9 +123,39 @@ class Server:
             return
 
         print("Authenticated!")
+        user = ssh_server.user
         game.set_player_ready(player_id, True)
         channel.send("\r\n")
         channel_file = channel.makefile()
+
+        def register_account():
+            channel.sendall("\x1b[H\x1b[J")
+            channel.sendall(
+                "Welcome to LAN PONG!\r\n"
+                "Please create an account.\r\n"
+                "Enter your desired username: "
+            )
+
+            username = self.echo_line(channel_file, channel)
+
+            while self.db.is_username_valid(username) is False:
+                channel.sendall("\x1b[H\x1b[J")
+                channel.sendall(
+                    "Username either already exists or contains invalid characters( No white spaces or empty string).\r\n"
+                    "Please enter another username: "
+                )
+                username = self.echo_line(channel_file, channel)
+
+            channel.sendall("\x1b[H\x1b[J")
+            channel.sendall("Enter your password: ")
+            password = self.echo_line(channel_file, channel)
+
+            self.db.create_user(username, password)
+            channel.sendall("\x1b[H\x1b[J")
+            channel.sendall(
+                "Account registered successfully. Please login with your credentials.\r\n"
+            )
+            channel_file.read(1).decode()
 
         def handle_input(player_id, game):
             while True:
@@ -138,7 +167,19 @@ class Server:
                 game.update_paddle(player_id, key)
                 time.sleep(0.05)
 
+        def user_cleanup():
+            # remove client from connections
+            channel.close()
+            client_socket.close()
+
         try:
+            # if username is new prompt to register
+            if user["username"] == "new":
+                register_account()
+                user_cleanup()
+
+            # Show leaderboard and match making option screen
+
             # Show waiting screen until there are two players
             while not game.is_full():
                 send_frame(channel, self.waiting_screen)
@@ -152,8 +193,9 @@ class Server:
             # Game is over
             winner = 1 if game.loser == 2 else 2
             send_frame(channel, get_message_screen(f"Player {winner} wins!"))
+
         except Exception as e:
             print(f"Exception: {e}")
         finally:
-            channel.close()
-            client_socket.close()
+            # remove client from connections
+            user_cleanup()
