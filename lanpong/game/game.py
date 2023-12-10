@@ -113,7 +113,6 @@ class Game:
     """
     Game object for pong
     """
-
     DEFAULT_ROWS = 36
     DEFAULT_COLS = 105
     STATS_HEIGHT = 5
@@ -132,6 +131,7 @@ class Game:
         self.score = [0, 0]
         self.score_timestamp = 0
         self.most_recent_score = -1
+
 
         self.is_game_started_event = threading.Event()
 
@@ -229,6 +229,7 @@ class Game:
         self.screen[self.ball.get_row()][self.ball.get_col()] = b" "
 
         self.ball.update_position()
+
         score = self.ball.handle_wall_collision(self.nrows, self.ncols)
         if score != 0:
             self.score_timestamp = time.time()
@@ -241,7 +242,6 @@ class Game:
 
         # Update the ball position on the screen
         self.screen[self.ball.get_row()][self.ball.get_col()] = Ball.SYMBOL
-        return 0
 
     def get_message_screen(self, message):
         screen = Game.get_blank_screen(stats_height=0)

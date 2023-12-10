@@ -1,0 +1,43 @@
+[
+  {
+    "id": 1,
+    "username": "john_doe",
+    "password": "password123",
+    "score": 120,
+    "publickey": 120
+  },
+  {
+    "id": 2,
+    "username": "jane_doe",
+    "password": "securepass",
+    "score": 150
+  },
+  {
+    "id": 3,
+    "username": "mark",
+    "password": "123",
+    "score": 0,
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMjlXfHr4jxk5g76UG0mlbI/oosXnD94MrYle/39+b+2 markchen8717@gmail.com",
+    "key_type": "ed25519"
+  },
+  {
+    "id": 4,
+    "username": "new",
+    "password": "",
+    "score": 0
+  },
+  {
+    "id": 5,
+    "username": "joemama",
+    "password": "mom",
+    "score": 0
+  },
+  {
+    "id": 6,
+    "username": "sam",
+    "password": "123",
+    "score": 0,
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMjlXfHr4jxk5g76UG0mlbI/oosXnD94MrYle/39+b+2 markchen8717@gmail.com",
+    "key_type": "ed25519"
+  }
+]
