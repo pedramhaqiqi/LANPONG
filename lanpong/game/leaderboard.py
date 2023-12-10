@@ -12,9 +12,10 @@ class ThreadSafeLeaderboard:
     """A thread-safe leaderboard."""
 
     def __init__(self, filename="leaderboard.csv"):
-        # Efficiently maintain reverse-ordered dict of score to names.
         self._filename = filename
         self._lock = Lock()
+
+        # Efficiently maintain reverse-ordered dict of score to names.
         self._score_to_names = SortedDict(key=neg)
         self._name_to_score = defaultdict(int)
         with open(filename, "r") as f:
