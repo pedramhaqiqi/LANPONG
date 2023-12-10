@@ -76,9 +76,10 @@ def wait_for_char(channel_file, valid_chars):
 
 class Server:
     def __init__(self, key_file_name="test_key") -> None:
+        self.lock = threading.Lock()
         self.db = DB()
         self.server_key = paramiko.RSAKey.from_private_key_file(filename=key_file_name)
-        self.connections = []
+        self.connections = set()
         self.waiting_screen = get_message_screen(
             f"You are player 1. Waiting for player 2..."
         )
@@ -181,13 +182,17 @@ class Server:
     def handle_client(self, client_socket):
         try:
             transport = paramiko.Transport(client_socket)
-            ssh_server = SSHServer()
+            ssh_server = SSHServer(self)
             transport.add_server_key(self.server_key)
             transport.start_server(server=ssh_server)
             channel = transport.accept(20)
             if channel is None:
                 raise ValueError("No channel")
             user = ssh_server.user
+
+            with self.lock:
+                self.connections.add(user["username"])
+
             channel.send("\r\n")
             channel_file = channel.makefile()
 
