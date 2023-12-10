@@ -114,8 +114,9 @@ class Game:
 
     DEFAULT_ROWS = 24
     DEFAULT_COLS = 70
+    STATS_HEIGHT = 5
 
-    def __init__(self, rows=DEFAULT_ROWS, cols=DEFAULT_COLS):
+    def __init__(self, rows=DEFAULT_ROWS, cols=DEFAULT_COLS, stats_height=STATS_HEIGHT):
         self.nrows = rows
         self.ncols = cols
 
@@ -131,7 +132,7 @@ class Game:
         self.paddle1 = Paddle(self.nrows // 2, 1, 3)
         self.paddle2 = Paddle(self.nrows // 2, self.ncols - 2, 3)
 
-        self.screen = Game.get_blank_screen()
+        self.screen = Game.get_blank_screen(stats_height=stats_height)
         # Draw the paddles
         self.draw_paddle(self.paddle1)
         self.draw_paddle(self.paddle2)
@@ -159,7 +160,9 @@ class Game:
         """Sets the player status to either 'ready' or 'not ready'"""
         player = self.player1 if player_id == 1 else self.player2
         player.is_ready = is_ready
-        if self.player1.is_ready and (self.player2 is not None and self.player2.is_ready):
+        if self.player1.is_ready and (
+            self.player2 is not None and self.player2.is_ready
+        ):
             self.is_game_started_event.set()
         # else:
         #     self.is_game_started_event.clear()
@@ -172,7 +175,8 @@ class Game:
         self.screen[self.ball.get_row()][self.ball.get_col()] = b" "
 
         self.ball.update_position()
-        self.loser = self.ball.handle_wall_collision(self.nrows, self.ncols)
+        # self.loser = self.ball.handle_wall_collision(self.nrows, self.ncols)
+        self.ball.handle_wall_collision(self.nrows, self.ncols)
 
         self.ball.handle_paddle_collision(self.player1.paddle, self.player2.paddle)
 
@@ -215,10 +219,13 @@ class Game:
         return self.player1 is not None and self.player2 is not None
 
     @staticmethod
-    def get_blank_screen(rows=DEFAULT_ROWS, cols=DEFAULT_COLS):
+    def get_blank_screen(
+        rows=DEFAULT_ROWS, cols=DEFAULT_COLS, stats_height=STATS_HEIGHT
+    ):
         """Return a blank screen with no paddles or ball, just the border"""
+        rows = rows + stats_height
         screen = np.full((rows, cols), b" ", dtype="S1")
-        screen[0, :] = screen[-1, :] = b"-"
+        screen[0, :] = screen[-1, :] = screen[-stats_height - 1, :] = b"-"
         screen[:, 0] = screen[:, -1] = b"+"
         return screen
 
