@@ -3,12 +3,37 @@
     "id": 1,
     "username": "john_doe",
     "password": "password123",
-    "score": 120
+    "score": 120,
+    "publickey": 120
   },
   {
     "id": 2,
     "username": "jane_doe",
     "password": "securepass",
     "score": 150
+  },
+  {
+    "id": 3,
+    "username": "mark",
+    "password": "123",
+    "score": 0
+  },
+  {
+    "id": 4,
+    "username": "new",
+    "password": "",
+    "score": 0
+  },
+  {
+    "id": 5,
+    "username": "joemama",
+    "password": "mom",
+    "score": 0
+  },
+  {
+    "id": 6,
+    "username": "sam",
+    "password": "123",
+    "score": 0
   }
 ]
