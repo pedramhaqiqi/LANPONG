@@ -43,8 +43,9 @@ def get_lobby_screen(db, username=""):
     rows, cols = screen.shape
 
     assert len(LOGO_ASCII[0]) < cols - 2
+    start = (cols - len(LOGO_ASCII[0])) // 2
     for i, line in enumerate(LOGO_ASCII):
-        screen[1 + i, 1 : len(line) + 1] = list(line)
+        screen[1 + i, start : start + len(line)] = list(line)
     current_row = 1 + len(LOGO_ASCII) + 1
 
     for i, line in enumerate(
@@ -53,9 +54,15 @@ def get_lobby_screen(db, username=""):
             f"{i + 1}. {user['username']} - {user['score']}"
             for i, user in enumerate(db.get_top_users(10))
         ]
-        + ["1. Matchmaking", "2. Public key configuration"]
+        + [
+            "",
+            "Press key to proceed:",
+            "[1] Matchmaking",
+            "[2] Public key configuration",
+        ]
     ):
-        screen[current_row + i, 1 : len(line) + 1] = list(line)
+        start = (cols - len(line)) // 2
+        screen[current_row + i, start : len(line) + start] = list(line)
 
     return Game.screen_to_tui(screen)
 
