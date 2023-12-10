@@ -1,6 +1,7 @@
 import json
 import threading
 from pathlib import Path
+import os
 
 
 class DB:
@@ -22,9 +23,10 @@ class DB:
         Returns:
             list: List of user objects.
         """
-        if not Path(self.filename).is_file():
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), self.filename)
+        if not Path(path).is_file():
             return []
-        with open(self.filename, "r") as file:
+        with open(path, "r") as file:
             return json.load(file)
 
     def save_db(self):

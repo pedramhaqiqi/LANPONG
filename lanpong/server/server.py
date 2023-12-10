@@ -87,6 +87,24 @@ class Server:
             game.update_ball()
             time.sleep(0.05)
 
+    def echo_line(self, channel_file, channel):
+        line = ""
+        while True:
+            char = channel_file.read(1).decode()
+
+            # Handle backspace (ASCII 8 or '\b' or '\x7F')
+            if char in {"\x08", "\b", "\x7F"}:
+                if line:
+                    # Remove the last character from the line and move the cursor back
+                    line = line[:-1]
+                    channel.sendall("\b \b")
+            elif char == "\r" or char == "\n":
+                break
+            else:
+                line += char
+                channel.sendall(char)
+        return line
+
     def handle_client(self, client_socket, game: Game, player_id):
         transport = paramiko.Transport(client_socket)
         ssh_server = SSHServer()
@@ -136,8 +154,6 @@ class Server:
             send_frame(channel, get_message_screen(f"Player {winner} wins!"))
         except Exception as e:
             print(f"Exception: {e}")
-            if client in self.connections:
-                self.connections.remove(client)
         finally:
             channel.close()
             client_socket.close()
