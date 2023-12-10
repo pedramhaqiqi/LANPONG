@@ -83,7 +83,7 @@ class Server:
         """
         game.is_game_started_event.wait()
         while game.loser == 0:
-            game.update_ball()
+            game.update_game()
             time.sleep(0.05)
 
     def handle_ping(self, game: Game, ping: Ping, player_id):

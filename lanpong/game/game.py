@@ -4,6 +4,7 @@ import threading
 
 from itertools import chain
 from collections import namedtuple
+import time
 
 
 class Paddle:
@@ -117,6 +118,7 @@ class Game:
     DEFAULT_COLS = 70
     STATS_HEIGHT = 5
     GAME_LENGTH = 5
+    SCORE_DISPLAY_TIME = 2
 
     def __init__(
         self,
@@ -128,6 +130,8 @@ class Game:
         self.nrows = rows
         self.ncols = cols
         self.score = [0, 0]
+        self.score_timestamp = 0
+        self.most_recent_score = -1
 
         self.is_game_started_event = threading.Event()
 
@@ -214,7 +218,10 @@ class Game:
         elif self.score[1] >= self.GAME_LENGTH:
             self.loser = 1
 
-    def update_ball(self):
+    def update_game(self):
+        if time.time() - self.score_timestamp < self.SCORE_DISPLAY_TIME:
+            return
+        self.most_recent_score = -1
         if self.loser != 0:
             # Game is over, don't update anything
             return
@@ -224,6 +231,8 @@ class Game:
         self.ball.update_position()
         score = self.ball.handle_wall_collision(self.nrows, self.ncols)
         if score != 0:
+            self.score_timestamp = time.time()
+            self.most_recent_score = score
             self.update_score(score)
 
         self.ball.handle_paddle_collision(self.player1.paddle, self.player2.paddle)
@@ -234,8 +243,19 @@ class Game:
         self.screen[self.ball.get_row()][self.ball.get_col()] = Ball.SYMBOL
         return 0
 
+    def get_message_screen(self, message):
+        screen = Game.get_blank_screen(stats_height=0)
+        rows, cols = screen.shape
+        assert len(message) < cols - 2
+
+        start = (cols - len(message)) // 2
+        screen[rows // 2, start : start + len(message)] = list(message)
+        return Game.screen_to_tui(screen)
+
     def update_paddle(self, player_number: int, key):
         """Updates the paddle positions"""
+        if time.time() - self.score_timestamp < self.SCORE_DISPLAY_TIME:
+            return
         if self.loser != 0:
             # Game is over, don't update anything
             return
@@ -262,6 +282,11 @@ class Game:
         self.draw_paddle(paddle)
 
     def __str__(self):
+        if time.time() - self.score_timestamp < self.SCORE_DISPLAY_TIME:
+            return self.get_message_screen(
+                f"Player {self.most_recent_score} scores! Score: {self.score[0]}-{self.score[1]}"
+            )
+
         return Game.screen_to_tui(self.screen)
 
     def is_full(self):
