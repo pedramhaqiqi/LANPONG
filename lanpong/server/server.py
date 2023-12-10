@@ -24,6 +24,9 @@ LOGO_ASCII = """\
 
 
 def get_message_screen(message):
+    """
+    Returns a screen with the message centered.
+    """
     screen = Game.get_blank_screen(stats_height=0)
     rows, cols = screen.shape
     assert len(message) < cols - 2
@@ -35,16 +38,23 @@ def get_message_screen(message):
 
 
 def send_frame(channel, frame):
+    """
+    Sends a frame to the client.
+    """
     return channel.sendall("".join([CLEAR_SCREEN, frame, HIDE_CURSOR]))
 
 
 def get_lobby_screen(db, username=""):
+    """
+    Returns the lobby screen with the leaderboard and options.
+    """
     screen = Game.get_blank_screen()
     rows, cols = screen.shape
 
     assert len(LOGO_ASCII[0]) < cols - 2
     start = (cols - len(LOGO_ASCII[0])) // 2
     for i, line in enumerate(LOGO_ASCII):
+        # Center each line of the logo.
         screen[1 + i, start : start + len(line)] = list(line)
     current_row = 1 + len(LOGO_ASCII) + 1
 
@@ -61,6 +71,7 @@ def get_lobby_screen(db, username=""):
             "[2] Public key configuration",
         ]
     ):
+        # Center each line.
         start = (cols - len(line)) // 2
         screen[current_row + i, start : len(line) + start] = list(line)
 
@@ -68,6 +79,9 @@ def get_lobby_screen(db, username=""):
 
 
 def wait_for_char(channel_file, valid_chars):
+    """
+    Waits for a character from the client that is in the valid_chars set.
+    """
     while True:
         char = channel_file.read(1).decode()
         if char in valid_chars:
@@ -95,6 +109,7 @@ class Server:
         """
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_sock:
+            # Bind socket to port and start listening for connections.
             server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             server_sock.bind((host, port))
@@ -168,19 +183,22 @@ class Server:
             (Game, int): Game and player id
         """
         with self.games_lock:
+            # Get a game that is not full, or None if all games are full.
             game = next((g for g in self.games if not g.is_full()), None)
             if game is None:
-                # No game available, create a new one
+                # No game available, create a new one.
                 game = Game()
                 self.games.append(game)
-                # Initialize client
+                # Create a thread for this game and start it.
                 game_thread = threading.Thread(target=self.handle_game, args=(game,))
                 game_thread.start()
+            # Get the player id for this game.
             player_id = game.initialize_player()
             return game, player_id
 
     def handle_client(self, client_socket):
         try:
+            # Initialize the SSH server protocol for this connection.
             transport = paramiko.Transport(client_socket)
             ssh_server = SSHServer(self)
             transport.add_server_key(self.server_key)
@@ -188,16 +206,17 @@ class Server:
             channel = transport.accept(20)
             if channel is None:
                 raise ValueError("No channel")
-            user = ssh_server.user
 
+            user = ssh_server.user
             with self.lock:
                 self.connections.add(user["username"])
 
-            channel.send("\r\n")
             channel_file = channel.makefile()
 
+            # Helper functions for handling keystokes and registration:
             def register_account():
                 for i in count():
+                    # Repeat until have a valid username.
                     message = (
                         "Welcome to LAN PONG!\r\n"
                         "Please create an account.\r\n"
@@ -211,9 +230,11 @@ class Server:
                     if self.db.is_username_valid(username):
                         break
 
-                send_frame(channel, "Enter your password:")
+                # Get password (empty is ok).
+                send_frame(channel, "Enter your password (empty for no password):")
                 password = self.echo_line(channel_file, channel)
 
+                # Add newly registered user to the database.
                 self.db.create_user(username, password)
                 send_frame(
                     channel,
@@ -221,6 +242,7 @@ class Server:
                 )
 
             def add_public_key():
+                # Only support ed25519.
                 key_types = {"1": "ed25519"}
                 send_frame(channel, "Please select a key type:\r\n1. Ed25519\r\n")
                 choice = wait_for_char(channel_file, set(key_types.keys()))
@@ -230,6 +252,7 @@ class Server:
                     channel,
                     f"Please paste your {key_type} public key (entire content):\r\n",
                 )
+                # Receive the public key and add it to the database.
                 public_key = self.echo_line(channel_file, channel)
                 self.db.update_user(
                     user["id"], {"public_key": public_key, "key_type": key_type}
@@ -242,15 +265,16 @@ class Server:
                     except Exception as e:
                         print(f"Exception: {e}")
                         break
+                    # Update the paddles location based on the key pressed.
                     game.update_paddle(player_id, key)
                     time.sleep(0.05)
 
-            # If username is new prompt to register
+            # If username is new prompt to register.
             if user["username"] == "new":
                 register_account()
                 return
 
-            # Show lobby and match making option screen
+            # Show lobby and match making option screen.
             send_frame(channel, get_lobby_screen(self.db, user["username"]))
             while (char := wait_for_char(channel_file, {"1", "2"})) == "2":
                 add_public_key()
@@ -259,11 +283,12 @@ class Server:
             game, player_id = self.get_game_or_create()
             game.set_player_ready(player_id, True)
 
-            # Show waiting screen until there are two players
+            # Show waiting screen until there are two players.
             while not game.is_full():
                 send_frame(channel, self.waiting_screen)
                 time.sleep(0.5)
 
+            # Start thread to read ping (response time).
             input_thread = threading.Thread(target=handle_input, args=(player_id, game))
             input_thread.start()
             ping_thread = threading.Thread(
@@ -277,6 +302,7 @@ class Server:
             )
             ping_thread.start()
 
+            # Send the current TUI representation of the game state.
             while game.loser == 0:
                 send_frame(channel, str(game))
                 time.sleep(0.05)
@@ -285,8 +311,8 @@ class Server:
             send_frame(channel, get_message_screen(f"Player {winner} wins!"))
         except Exception as e:
             print(f"Exception: {e}")
-
         finally:
+            # Clean up.
             if channel is not None:
                 channel.close()
             client_socket.close()
