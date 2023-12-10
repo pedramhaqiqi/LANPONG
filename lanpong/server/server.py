@@ -120,21 +120,6 @@ class Server:
             while True:
                 client_socket, client_addr = server_sock.accept()
                 print(f"Incoming connection from {client_addr[0]}:{client_addr[1]}")
-                with self.games_lock:
-                    new_game = next(
-                        (game for game in self.games if not game.is_full()), None
-                    )
-                    if new_game is None:
-                        # No game available, create a new one
-                        new_game = Game()
-                        self.games.append(new_game)
-                        # Initialize client
-                        game_thread = threading.Thread(
-                            target=self.handle_game, args=(new_game,)
-                        )
-                        game_thread.start()
-                player_id = new_game.initialize_player()
-                print(f"player id: {player_id}, game started?: {new_game.is_full()}")
                 client_thread = threading.Thread(
                     target=self.handle_client, args=(client_socket,)
                 )
