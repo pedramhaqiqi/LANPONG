@@ -100,10 +100,9 @@ class DB:
         with self.lock:
             for user in self.users:
                 if user["id"] == user_id:
-                    user.update(new_data)
+                    for key, value in new_data.items():
+                        user[key] = value
                     self.save_db()
-                    return
-            raise ValueError(f"User with ID {user_id} not found.")
 
     def login(self, username, password):
         """
