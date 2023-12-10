@@ -23,7 +23,6 @@ LOGO_ASCII = """\
 \_____/\_| |_/\_| \_/\_|    \___/\_| \_/\____/""".splitlines()
 
 
-
 def get_message_screen(message):
     screen = Game.get_blank_screen(stats_height=0)
     rows, cols = screen.shape
@@ -34,8 +33,10 @@ def get_message_screen(message):
 
     return Game.screen_to_tui(screen)
 
+
 def send_frame(channel, frame):
     return channel.sendall("".join([CLEAR_SCREEN, frame, HIDE_CURSOR]))
+
 
 def get_lobby_screen(db, username=""):
     screen = Game.get_blank_screen()
@@ -64,6 +65,7 @@ def wait_for_char(channel_file, valid_chars):
         char = channel_file.read(1).decode()
         if char in valid_chars:
             return char
+
 
 class Server:
     def __init__(self, key_file_name="test_key") -> None:
@@ -111,7 +113,7 @@ class Server:
                 player_id = new_game.initialize_player()
                 print(f"player id: {player_id}, game started?: {new_game.is_full()}")
                 client_thread = threading.Thread(
-                    target=self.handle_client, args=(client_socket, new_game, player_id)
+                    target=self.handle_client, args=(client_socket,)
                 )
                 client_thread.start()
 
@@ -121,19 +123,16 @@ class Server:
         """
         game.is_game_started_event.wait()
         while game.loser == 0:
-
             game.update_game()
             time.sleep(0.05)
 
-    def handle_ping(self, game: Game, ping: Ping, player_id):
+    def handle_ping(self, game: Game, ping: Ping, name, player_id):
         """
         Handles the ping updates
         """
         game.is_game_started_event.wait()
         while game.loser == 0:
-            game.update_network_stats(
-                f"PING: Player {player_id} {ping.get()}ms", player_id
-            )
+            game.update_network_stats(f"PING: Player {name} {ping.get()}ms", player_id)
             time.sleep(0.05)
 
     def echo_line(self, channel_file, channel):
@@ -215,7 +214,10 @@ class Server:
                 choice = wait_for_char(channel_file, set(key_types.keys()))
 
                 key_type = key_types[choice]
-                send_frame(channel, f"Please paste your {key_type} public key (entire content):\r\n")
+                send_frame(
+                    channel,
+                    f"Please paste your {key_type} public key (entire content):\r\n",
+                )
                 public_key = self.echo_line(channel_file, channel)
                 self.db.update_user(
                     user["id"], {"public_key": public_key, "key_type": key_type}
@@ -254,7 +256,12 @@ class Server:
             input_thread.start()
             ping_thread = threading.Thread(
                 target=self.handle_ping,
-                args=(game, Ping(channel.getpeername()[0]), player_id),
+                args=(
+                    game,
+                    Ping(channel.getpeername()[0]),
+                    user["username"],
+                    player_id,
+                ),
             )
             ping_thread.start()
 
