@@ -3,6 +3,8 @@ import re
 
 
 class Ping:
+    MAX_CACHE_SIZE = 100
+
     def __init__(self, ip) -> None:
         self._cache = []
         self.ip = ip
@@ -22,7 +24,7 @@ class Ping:
             # Regex to extract the time from the output
             match = re.search(r"time=(\d+\.?\d*)\s*ms", stdout.decode())
             if match:
-                if len(self._cache) > 100:
+                if len(self._cache) > self.MAX_CACHE_SIZE:
                     self._cache.pop(0)
                 self._cache.append(float(match.group(1)))
 

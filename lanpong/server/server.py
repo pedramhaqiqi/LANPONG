@@ -130,11 +130,10 @@ class Server:
 
             # Todo - move this into ping itself
             ping = Ping(channel.getpeername()[0])
-            game.update_network_stats(1, f"Ping Statistics: {ping.get()} ms")
-            ping_counter = 0
+            ping_counter, ping_timer = 21, 21
             while game.loser == 0:
                 # Send ping every 2 seconds
-                if ping_counter > 20:
+                if ping_counter > ping_timer:
                     game.update_network_stats(1, f"Ping Statistics: {ping.get()} ms")
                     ping_counter = 0
                 send_frame(channel, str(game))
