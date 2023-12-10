@@ -158,9 +158,9 @@ class Game:
 
     def _reset_paddles(self):
         """Resets the paddles to their original positions"""
+        self.screen[1 : self.nrows - 1, 2] = self.screen[1 : self.nrows - 1, -2] = b" "
         self.paddle1.row = self.nrows // 2
         self.paddle2.row = self.nrows // 2
-        self.screen[1 : self.nrows - 1, 2] = self.screen[1 : self.nrows - 1, -2] = b" "
 
     def _reset_ball(self):
         """Resets the ball to its original position"""

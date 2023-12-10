@@ -86,6 +86,17 @@ class Server:
             game.update_ball()
             time.sleep(0.05)
 
+    def handle_ping(self, game: Game, ping: Ping, player_id):
+        """
+        Handles the ping updates
+        """
+        game.is_game_started_event.wait()
+        while game.loser == 0:
+            game.update_network_stats(
+                f"PING: Player {player_id} {ping.get()}ms", player_id
+            )
+            time.sleep(0.05)
+
     def handle_client(self, client_socket, game: Game, player_id):
         def handle_input(player_id, game):
             while True:
@@ -127,18 +138,14 @@ class Server:
             input_thread = threading.Thread(target=handle_input, args=(player_id, game))
             input_thread.start()
 
-            # Todo - move this into ping itself
-            ping = Ping(channel.getpeername()[0])
-            ping_counter, ping_timer = 21, 21
+            ping_thread = threading.Thread(
+                target=self.handle_ping,
+                args=(game, Ping(channel.getpeername()[0]), player_id),
+            )
+            ping_thread.start()
+
             while game.loser == 0:
-                # Send ping every 2 seconds
-                if ping_counter > ping_timer:
-                    game.update_network_stats(
-                        f"PING: Player {player_id} {ping.get()}ms", player_id + 1
-                    )
-                    ping_counter = 0
                 send_frame(channel, str(game))
-                ping_counter += 1
                 time.sleep(0.05)
             # Game is over
             winner = 1 if game.loser == 2 else 2
