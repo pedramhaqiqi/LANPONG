@@ -116,8 +116,15 @@ class Game:
     DEFAULT_ROWS = 24
     DEFAULT_COLS = 70
     STATS_HEIGHT = 5
+    GAME_LENGTH = 5
 
-    def __init__(self, rows=DEFAULT_ROWS, cols=DEFAULT_COLS, stats_height=STATS_HEIGHT):
+    def __init__(
+        self,
+        rows=DEFAULT_ROWS,
+        cols=DEFAULT_COLS,
+        stats_height=STATS_HEIGHT,
+        game_length=GAME_LENGTH,
+    ):
         self.nrows = rows
         self.ncols = cols
         self.score = [0, 0]
@@ -202,9 +209,9 @@ class Game:
 
     def check_for_winner(self):
         """Checks if there is a winner and updates the screen"""
-        if self.score[0] >= 5:
+        if self.score[0] >= self.GAME_LENGTH:
             self.loser = 2
-        elif self.score[1] >= 5:
+        elif self.score[1] >= self.GAME_LENGTH:
             self.loser = 1
 
     def update_ball(self):
@@ -271,7 +278,7 @@ class Game:
         screen[:, 0] = screen[:, -1] = b"+"
         return screen
 
-    def update_network_stats(self, offset, stats):
+    def update_network_stats(self, stats, offset=1):
         """Updates the network statistics area"""
         self.screen[-self.STATS_HEIGHT + offset, 1:-2] = b" "
         self.screen[-self.STATS_HEIGHT + offset, 1 : 1 + len(stats)] = list(stats)

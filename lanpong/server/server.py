@@ -133,7 +133,9 @@ class Server:
             while game.loser == 0:
                 # Send ping every 2 seconds
                 if ping_counter > ping_timer:
-                    game.update_network_stats(1, f"Ping Statistics: {ping.get()} ms")
+                    game.update_network_stats(
+                        f"PING: Player {player_id} {ping.get()}ms", player_id + 1
+                    )
                     ping_counter = 0
                 send_frame(channel, str(game))
                 ping_counter += 1
