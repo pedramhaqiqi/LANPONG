@@ -128,6 +128,24 @@ class Server:
                 channel.sendall(char)
         return line
 
+    def get_game_or_create(self):
+        """
+        Returns a game that is not full, or creates a new one
+        Returns:
+            (Game, int): Game and player id
+        """
+        with self.games_lock:
+            game = next((g for g in self.games if not g.is_full()), None)
+            if game is None:
+                # No game available, create a new one
+                game = Game()
+                self.games.append(game)
+                # Initialize client
+                game_thread = threading.Thread(target=self.handle_game, args=(game,))
+                game_thread.start()
+            player_id = game.initialize_player()
+            return game, player_id
+
     def handle_client(self, client_socket):
         try:
             transport = paramiko.Transport(client_socket)
@@ -209,22 +227,8 @@ class Server:
                 add_public_key()
                 send_frame(channel, get_lobby_screen(self.db, user["username"]))
 
-            with self.games_lock:
-                new_game = next(
-                    (game for game in self.games if not game.is_full()), None
-                )
-                if new_game is None:
-                    # No game available, create a new one
-                    new_game = Game()
-                    self.games.append(new_game)
-                    # Initialize client
-                    game_thread = threading.Thread(
-                        target=self.handle_game, args=(new_game,)
-                    )
-                    game_thread.start()
-            game = new_game
-            player_id = new_game.initialize_player()
-            print(f"player id: {player_id}, game started?: {new_game.is_full()}")
+            game, player_id = self.get_game_or_create()
+            game.set_player_ready(player_id, True)
 
             # Show waiting screen until there are two players
             while not game.is_full():
