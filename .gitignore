@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+#vscode
+.vscode/
+
 # Distribution / packaging
 .Python
 build/
@@ -130,3 +133,6 @@ dmypy.json
 
 # templates
 .github/templates/*
+
+# default path for leaderboard file
+leaderboard.csv
