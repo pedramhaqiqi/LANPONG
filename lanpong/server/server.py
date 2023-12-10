@@ -11,6 +11,7 @@ import numpy as np
 
 from ..game.game import Game
 from lanpong.server.ssh import SSHServer
+from lanpong.server.db import DB
 
 
 def get_waiting_message():
@@ -32,6 +33,7 @@ def get_waiting_message():
 
 class Server:
     def __init__(self, key_file_name="test_key") -> None:
+        self.db = DB()
         self.server_key = paramiko.RSAKey.from_private_key_file(filename=key_file_name)
         self.connections = []
         self.waiting_message = get_waiting_message()

@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "username": "john_doe",
+    "password": "password123",
+    "score": 120
+  },
+  {
+    "id": 2,
+    "username": "jane_doe",
+    "password": "securepass",
+    "score": 150
+  }
+]
