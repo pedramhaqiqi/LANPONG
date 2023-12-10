@@ -13,10 +13,10 @@ CLEAR_SCREEN = "\x1b[H\x1b[J"
 HIDE_CURSOR = "\033[?25l"
 
 LOGO_ASCII = """\
- _       ___   _   _ ______ _____ _   _ _____ 
+ _       ___   _   _ ______ _____ _   _ _____
 | |     / _ \ | \ | || ___ \  _  | \ | |  __ \\
 | |    / /_\ \|  \| || |_/ / | | |  \| | |  \/
-| |    |  _  || . ` ||  __/| | | | . ` | | __ 
+| |    |  _  || . ` ||  __/| | | | . ` | | __
 | |____| | | || |\  || |   \ \_/ / |\  | |_\ \\
 \_____/\_| |_/\_| \_/\_|    \___/\_| \_/\____/""".splitlines()
 assert all(len(line) == len(LOGO_ASCII[0]) for line in LOGO_ASCII)
@@ -51,11 +51,13 @@ def get_lobby_screen(db, username=""):
         + [
             f"{i + 1}. {user['username']} - {user['score']}"
             for i, user in enumerate(db.get_top_users(10))
-        ] + ["1. Matchmaking", "2. Public key configuration"]
+        ]
+        + ["1. Matchmaking", "2. Public key configuration"]
     ):
         screen[current_row + i, 1 : len(line) + 1] = list(line)
 
     return Game.screen_to_tui(screen)
+
 
 def wait_for_char(channel_file, valid_chars):
     while True:
@@ -168,6 +170,24 @@ class Server:
                 )
                 channel_file.read(1).decode()
 
+            def add_public_key():
+                key_types = {"1": "ed25519"}
+                channel.sendall("\x1b[H\x1b[J")
+                channel.sendall("Please select a key type:\r\n" "1. Ed25519\r\n")
+                choice = channel_file.read(1).decode()
+                while choice not in key_types:
+                    choice = channel_file.read(1).decode()
+
+                key_type = key_types.get(choice)
+                channel.sendall("\x1b[H\x1b[J")
+                channel.sendall(
+                    f"Please paste your {key_type} public key (entire content):\r\n"
+                )
+                public_key = self.echo_line(channel_file, channel)
+                self.db.update_user(
+                    user["id"], {"public_key": public_key, "key_type": key_type}
+                )
+
             def handle_input(player_id, game):
                 while True:
                     try:
@@ -186,8 +206,8 @@ class Server:
             # Show lobby and match making option screen
             send_frame(channel, get_lobby_screen(self.db, user["username"]))
             while (char := wait_for_char(channel_file, {"1", "2"})) == "2":
-                # Public key configuration
-                pass
+                add_public_key()
+                send_frame(channel, get_lobby_screen(self.db, user["username"]))
 
             with self.games_lock:
                 new_game = next(

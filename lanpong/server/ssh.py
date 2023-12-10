@@ -30,21 +30,24 @@ class SSHServer(paramiko.ServerInterface):
         return paramiko.AUTH_FAILED
 
     def check_auth_publickey(self, username, key):
-        # Check if the provided public key is in the list associated with the username
-        print(username, key)
+        user = self.db.get_user(username)
+        key_gen_func = {"ed25519": paramiko.ed25519key.Ed25519Key}
 
-        pbk = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMjlXfHr4jxk5g76UG0mlbI/oosXnD94MrYle/39+b+2 markchen8717@gmail.com".split(
-            " ", 3
-        )
-        # not_really_a_file = StringIO(pbk)
-        # mykey = paramiko.rsakey.RSAKey(file_obj=not_really_a_file)
-        mykey = paramiko.ed25519key.Ed25519Key(data=base64.b64decode(pbk[1]))
-        print(mykey)
-
+        pbk = user["public_key"].split(" ", 3)
+        user_key = key_gen_func[user["key_type"]](data=base64.b64decode(pbk[1]))
+        if key == user_key:
+            self.user = user
+            return paramiko.AUTH_SUCCESSFUL
         return paramiko.AUTH_FAILED
 
     def get_allowed_auths(self, username):
-        return "password,publickey"
+        user = self.db.get_user(username)
+        allowed = ["password"]
+        if user is None:
+            return "none"
+        elif user["public_key"] is not None:
+            allowed.append("publickey")
+        return ",".join(allowed)
 
     def get_banner(self):
         return ("LAN PONG\r\n", "en-US")

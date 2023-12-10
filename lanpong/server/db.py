@@ -121,6 +121,22 @@ class DB:
                     return user
         return None
 
+    def get_user(self, username):
+        """
+        Retrieve a user by their username.
+
+        Args:
+            username (str): The username to retrieve.
+
+        Returns:
+            dict or None: The user information if a user with the given username exists, None otherwise.
+        """
+        with self.lock:
+            for user in self.users:
+                if user["username"] == username:
+                    return user
+        return None
+
     def get_top_users(self, num):
         """
         Get the top users based on their score.
