@@ -1,16 +1,19 @@
+import re
 import socket
 import threading
 import time
+from itertools import count
+
 import paramiko
 import numpy as np
 
 from ..game.game import Game
 from lanpong.server.ssh import SSHServer
 from lanpong.server.db import DB
-import re
 
 CLEAR_SCREEN = "\x1b[H\x1b[J"
 HIDE_CURSOR = "\033[?25l"
+SHOW_CURSOR = "\033[?25h"
 
 LOGO_ASCII = """\
  _       ___   _   _ ______ _____ _   _ _____
@@ -19,7 +22,6 @@ LOGO_ASCII = """\
 | |    |  _  || . ` ||  __/| | | | . ` | | __
 | |____| | | || |\  || |   \ \_/ / |\  | |_\ \\
 \_____/\_| |_/\_| \_/\_|    \___/\_| \_/\____/""".splitlines()
-assert all(len(line) == len(LOGO_ASCII[0]) for line in LOGO_ASCII)
 
 
 def get_message_screen(message):
@@ -112,6 +114,7 @@ class Server:
 
     def echo_line(self, channel_file, channel):
         line = ""
+
         while True:
             char = channel_file.read(1).decode()
 
@@ -120,7 +123,6 @@ class Server:
                 if line:
                     # Remove the last character from the line and move the cursor back
                     line = line[:-1]
-                    channel.sendall("\b \b")
             elif char == "\r" or char == "\n":
                 break
             else:
@@ -160,47 +162,36 @@ class Server:
             channel_file = channel.makefile()
 
             def register_account():
-                channel.sendall("\x1b[H\x1b[J")
-                channel.sendall(
-                    "Welcome to LAN PONG!\r\n"
-                    "Please create an account.\r\n"
-                    "Enter your desired username: "
-                )
-
-                username = self.echo_line(channel_file, channel)
-
-                while self.db.is_username_valid(username) is False:
-                    channel.sendall("\x1b[H\x1b[J")
-                    channel.sendall(
-                        "Username either already exists or contains invalid characters( No white spaces or empty string).\r\n"
+                for i in count():
+                    message = (
+                        "Welcome to LAN PONG!\r\n"
+                        "Please create an account.\r\n"
+                        "Enter your desired username: "
+                        if i == 0
+                        else "Username either already exists or contains invalid characters( No white spaces or empty string).\r\n"
                         "Please enter another username: "
                     )
+                    send_frame(channel, message)
                     username = self.echo_line(channel_file, channel)
+                    if self.db.is_username_valid(username):
+                        break
 
-                channel.sendall("\x1b[H\x1b[J")
-                channel.sendall("Enter your password: ")
+                send_frame(channel, "Enter your password:")
                 password = self.echo_line(channel_file, channel)
 
                 self.db.create_user(username, password)
-                channel.sendall("\x1b[H\x1b[J")
-                channel.sendall(
-                    "Account registered successfully. Please login with your credentials.\r\n"
+                send_frame(
+                    channel,
+                    "Account registered successfully. Please login with your credentials.\r\n",
                 )
-                channel_file.read(1).decode()
 
             def add_public_key():
                 key_types = {"1": "ed25519"}
-                channel.sendall("\x1b[H\x1b[J")
-                channel.sendall("Please select a key type:\r\n" "1. Ed25519\r\n")
-                choice = channel_file.read(1).decode()
-                while choice not in key_types:
-                    choice = channel_file.read(1).decode()
+                send_frame(channel, "Please select a key type:\r\n1. Ed25519\r\n")
+                choice = wait_for_char(channel_file, set(key_types.keys()))
 
-                key_type = key_types.get(choice)
-                channel.sendall("\x1b[H\x1b[J")
-                channel.sendall(
-                    f"Please paste your {key_type} public key (entire content):\r\n"
-                )
+                key_type = key_types[choice]
+                send_frame(channel, f"Please paste your {key_type} public key (entire content):\r\n")
                 public_key = self.echo_line(channel_file, channel)
                 self.db.update_user(
                     user["id"], {"public_key": public_key, "key_type": key_type}
