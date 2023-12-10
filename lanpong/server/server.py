@@ -1,11 +1,6 @@
 import socket
 import threading
-import curses
 import time
-import fcntl
-import struct
-import termios
-import sys
 import paramiko
 import numpy as np
 
@@ -14,21 +9,23 @@ from lanpong.server.ssh import SSHServer
 from lanpong.server.db import DB
 
 
-def get_waiting_message():
-    rows = Game.DEFAULT_HEIGHT
-    cols = Game.DEFAULT_WIDTH
+CLEAR_SCREEN = "\x1b[H\x1b[J"
+HIDE_CURSOR = "\033[?25l"
 
-    board = np.full((rows, cols), " ", dtype="S1")
-    board[0, :] = board[-1, :] = "-"
-    board[:, 0] = board[:, -1] = "|"
-    board[0, 0] = board[0, -1] = board[-1, 0] = board[-1, -1] = "+"
 
-    message = "You are player 1. Waiting for player 2..."
+def get_message_screen(message):
+    screen = Game.get_blank_screen()
+    rows, cols = screen.shape
     assert len(message) < cols - 2
-    start = (cols - len(message)) // 2
-    board[rows // 2, start : start + len(message)] = list(message)
 
-    return "\r\n".join(["".join(c.decode() for c in row) for row in board]) + "\r\n"
+    start = (cols - len(message)) // 2
+    screen[rows // 2, start : start + len(message)] = list(message)
+
+    return Game.screen_to_tui(screen)
+
+
+def send_frame(channel, frame):
+    return channel.sendall("".join([CLEAR_SCREEN, frame, HIDE_CURSOR]))
 
 
 class Server:
@@ -36,9 +33,11 @@ class Server:
         self.db = DB()
         self.server_key = paramiko.RSAKey.from_private_key_file(filename=key_file_name)
         self.connections = []
-        self.waiting_message = get_waiting_message()
-        self.channel_lock = threading.Lock()
-        self.game = Game()
+        self.waiting_screen = get_message_screen(
+            f"You are player 1. Waiting for player 2..."
+        )
+        self.games = []
+        self.games_lock = threading.Lock()
 
     def start_server(self, host="0.0.0.0", port=2222):
         """Starts an SSH server on specified port and address
@@ -53,36 +52,42 @@ class Server:
             server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             server_sock.bind((host, port))
             server_sock.listen(100)
-            game_thread = threading.Thread(target=self.handle_game, args=())
-            game_thread.start()
             print(f"Listening for connection on {host}:{port}")
 
             # Accept multiple connections, thread-out
             while True:
                 client_socket, client_addr = server_sock.accept()
                 print(f"Incoming connection from {client_addr[0]}:{client_addr[1]}")
+                with self.games_lock:
+                    new_game = next(
+                        (game for game in self.games if not game.is_full()), None
+                    )
+                    if new_game is None:
+                        # No game available, create a new one
+                        new_game = Game()
+                        self.games.append(new_game)
+                        # Initialize client
+                        game_thread = threading.Thread(
+                            target=self.handle_game, args=(new_game,)
+                        )
+                        game_thread.start()
+                player_id = new_game.initialize_player()
+                print(f"player id: {player_id}, game started?: {new_game.is_full()}")
                 client_thread = threading.Thread(
-                    target=self.handle_client, args=(client_socket,)
+                    target=self.handle_client, args=(client_socket, new_game, player_id)
                 )
                 client_thread.start()
 
-    def handle_game(self):
-        while True:
-            if self.game.started:
-                self.game.update_ball()
-                time.sleep(0.05)
+    def handle_game(self, game: Game):
+        """
+        Handles the non-paddle game updates (mainly the ball)
+        """
+        game.is_game_started_event.wait()
+        while game.loser == 0:
+            game.update_ball()
+            time.sleep(0.05)
 
-    def broadcast_message(self, message, sender):
-        for client in self.connections:
-            if client != sender:
-                try:
-                    client.send(f"Message from {sender.getpeername()}: {message}\r\n")
-                except socket.error as e:
-                    print(f"Error sending message: {e}\r\n")
-                    client.close()
-                    self.connections.remove(client)
-
-    def handle_client(self, client_socket):
+    def handle_client(self, client_socket, game: Game, player_id):
         transport = paramiko.Transport(client_socket)
         ssh_server = SSHServer()
         transport.add_server_key(self.server_key)
@@ -90,48 +95,49 @@ class Server:
             transport.start_server(server=ssh_server)
         except paramiko.SSHException:
             return
+        finally:
+            # TODO: Clean up game
+            pass
 
         channel = transport.accept(20)
         if channel is None:
             print("No channel.")
+            # TODO: Clean up game
             return
-        # Use a lock to prevent multiple players from deciding they are player 1
-        with self.channel_lock:
-            self.connections.append(channel)
-            player = len(self.connections) + 1
 
         print("Authenticated!")
+        game.set_player_ready(player_id, True)
         channel.send("\r\n")
         channel_file = channel.makefile()
 
-        def handle_input(player_id):
+        def handle_input(player_id, game):
             while True:
                 try:
-                    key = channel_file.read(1).decode()
-                    self.game.update_paddle(player_id, key)
+                    key = channel_file.read(1) if channel.recv_ready() else b""
                 except Exception as e:
                     print(f"Exception: {e}")
                     break
+                game.update_paddle(player_id, key)
+                time.sleep(0.05)
 
         try:
-            player_id = None
-            while len(self.connections) < 2:
-                channel.sendall("\x1b[H\x1b[J")
-                channel.sendall(self.waiting_message)
+            # Show waiting screen until there are two players
+            while not game.is_full():
+                send_frame(channel, self.waiting_screen)
                 time.sleep(0.5)
-            player_id = self.game.initialize_player()
-            self.game.started = True
-            input_thread = threading.Thread(target=handle_input, args=(player_id,))
+
+            input_thread = threading.Thread(target=handle_input, args=(player_id, game))
             input_thread.start()
-            while True:
-                # Clear screen
-                channel.sendall("\x1b[H\x1b[J")
-                channel.sendall(self.game.get_board())
+            while game.loser == 0:
+                send_frame(channel, str(game))
                 time.sleep(0.05)
+            # Game is over
+            winner = 1 if game.loser == 2 else 2
+            send_frame(channel, get_message_screen(f"Player {winner} wins!"))
         except Exception as e:
             print(f"Exception: {e}")
-
-        finally:
             if client in self.connections:
                 self.connections.remove(client)
+        finally:
             channel.close()
+            client_socket.close()
