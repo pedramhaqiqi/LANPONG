@@ -6,7 +6,7 @@ import numpy as np
 
 from ..game.game import Game
 from lanpong.server.ssh import SSHServer
-from lanpong.server.ping import ping_client
+from lanpong.server.ping import Ping
 
 
 CLEAR_SCREEN = "\x1b[H\x1b[J"
@@ -25,7 +25,7 @@ def get_message_screen(message):
 
 
 def send_frame(channel, frame):
-    return channel.sendall("".join([CLEAR_SCREEN, frame, HIDE_CURSOR]))
+    return channel.send("".join([CLEAR_SCREEN, frame, HIDE_CURSOR]))
 
 
 class Server:
@@ -127,9 +127,18 @@ class Server:
 
             input_thread = threading.Thread(target=handle_input, args=(player_id, game))
             input_thread.start()
+
+            # Todo - move this into ping itself
+            ping = Ping(channel.getpeername()[0])
+            game.update_network_stats(1, f"Ping Statistics: {ping.get()} ms")
+            ping_counter = 0
             while game.loser == 0:
+                # Send ping every 2 seconds
+                if ping_counter > 20:
+                    game.update_network_stats(1, f"Ping Statistics: {ping.get()} ms")
+                    ping_counter = 0
                 send_frame(channel, str(game))
-                # ping_client(channel.getpeername()[0], player_id)
+                ping_counter += 1
                 time.sleep(0.05)
             # Game is over
             winner = 1 if game.loser == 2 else 2

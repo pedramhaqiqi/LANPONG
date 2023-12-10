@@ -133,6 +133,11 @@ class Game:
         self.paddle2 = Paddle(self.nrows // 2, self.ncols - 2, 3)
 
         self.screen = Game.get_blank_screen(stats_height=stats_height)
+        network_header = "Network Statistics:"
+        start = (cols - len(network_header)) // 2
+        self.screen[-self.STATS_HEIGHT, start : start + len(network_header)] = list(
+            network_header
+        )
         # Draw the paddles
         self.draw_paddle(self.paddle1)
         self.draw_paddle(self.paddle2)
@@ -228,6 +233,11 @@ class Game:
         screen[0, :] = screen[-1, :] = screen[-stats_height - 1, :] = b"-"
         screen[:, 0] = screen[:, -1] = b"+"
         return screen
+
+    def update_network_stats(self, offset, stats):
+        """Updates the network statistics area"""
+        self.screen[-self.STATS_HEIGHT + offset, 1:-2] = b" "
+        self.screen[-self.STATS_HEIGHT + offset, 1 : 1 + len(stats)] = list(stats)
 
     @staticmethod
     def screen_to_tui(screen):
