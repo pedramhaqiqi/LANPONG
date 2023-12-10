@@ -1,8 +1,10 @@
+import random
 import numpy as np
 import threading
 
 from itertools import chain
 from collections import namedtuple
+import time
 
 
 class Paddle:
@@ -111,13 +113,25 @@ class Game:
     """
     Game object for pong
     """
+    DEFAULT_ROWS = 36
+    DEFAULT_COLS = 105
+    STATS_HEIGHT = 5
+    GAME_LENGTH = 5
+    SCORE_DISPLAY_TIME = 2
 
-    DEFAULT_ROWS = 24
-    DEFAULT_COLS = 70
-
-    def __init__(self, rows=DEFAULT_ROWS, cols=DEFAULT_COLS):
+    def __init__(
+        self,
+        rows=DEFAULT_ROWS,
+        cols=DEFAULT_COLS,
+        stats_height=STATS_HEIGHT,
+        game_length=GAME_LENGTH,
+    ):
         self.nrows = rows
         self.ncols = cols
+        self.score = [0, 0]
+        self.score_timestamp = 0
+        self.most_recent_score = -1
+
 
         self.is_game_started_event = threading.Event()
 
@@ -131,7 +145,12 @@ class Game:
         self.paddle1 = Paddle(self.nrows // 2, 1, 3)
         self.paddle2 = Paddle(self.nrows // 2, self.ncols - 2, 3)
 
-        self.screen = Game.get_blank_screen()
+        self.screen = Game.get_blank_screen(stats_height=stats_height)
+        network_header = "Network Statistics:"
+        start = (cols - len(network_header)) // 2
+        self.screen[-self.STATS_HEIGHT, start : start + len(network_header)] = list(
+            network_header
+        )
         # Draw the paddles
         self.draw_paddle(self.paddle1)
         self.draw_paddle(self.paddle2)
@@ -140,6 +159,25 @@ class Game:
 
         self.player1 = self.player2 = None
         self.loser = 0
+
+    def _reset_paddles(self):
+        """Resets the paddles to their original positions"""
+        self.screen[1 : self.nrows - 1, 1] = self.screen[1 : self.nrows - 1, -2] = b" "
+        self.paddle1.row = self.nrows // 2
+        self.paddle2.row = self.nrows // 2
+
+    def _reset_ball(self):
+        """Resets the ball to its original position"""
+        self.ball.row = self.nrows // 2
+        self.ball.col = self.ncols // 2
+        choice = random.choice([-1, 1])
+        self.ball.row_velocity *= choice
+        self.ball.col_velocity *= choice
+
+    def reset_board(self):
+        """Resets the board to its original state"""
+        self._reset_paddles()
+        self._reset_ball()
 
     def draw_paddle(self, paddle):
         self.screen[paddle.row : paddle.row + paddle.length, paddle.col] = b"|"
@@ -159,12 +197,31 @@ class Game:
         """Sets the player status to either 'ready' or 'not ready'"""
         player = self.player1 if player_id == 1 else self.player2
         player.is_ready = is_ready
-        if self.player1.is_ready and (self.player2 is not None and self.player2.is_ready):
+        if self.player1.is_ready and (
+            self.player2 is not None and self.player2.is_ready
+        ):
             self.is_game_started_event.set()
         # else:
         #     self.is_game_started_event.clear()
 
-    def update_ball(self):
+    def update_score(self, player_id):
+        """Updates the score of the player"""
+        if player_id != 0:
+            self.score[player_id - 1] += 1
+            self.check_for_winner()
+            self.reset_board()
+
+    def check_for_winner(self):
+        """Checks if there is a winner and updates the screen"""
+        if self.score[0] >= self.GAME_LENGTH:
+            self.loser = 2
+        elif self.score[1] >= self.GAME_LENGTH:
+            self.loser = 1
+
+    def update_game(self):
+        if time.time() - self.score_timestamp < self.SCORE_DISPLAY_TIME:
+            return
+        self.most_recent_score = -1
         if self.loser != 0:
             # Game is over, don't update anything
             return
@@ -172,7 +229,12 @@ class Game:
         self.screen[self.ball.get_row()][self.ball.get_col()] = b" "
 
         self.ball.update_position()
-        self.loser = self.ball.handle_wall_collision(self.nrows, self.ncols)
+
+        score = self.ball.handle_wall_collision(self.nrows, self.ncols)
+        if score != 0:
+            self.score_timestamp = time.time()
+            self.most_recent_score = score
+            self.update_score(score)
 
         self.ball.handle_paddle_collision(self.player1.paddle, self.player2.paddle)
 
@@ -181,8 +243,19 @@ class Game:
         # Update the ball position on the screen
         self.screen[self.ball.get_row()][self.ball.get_col()] = Ball.SYMBOL
 
+    def get_message_screen(self, message):
+        screen = Game.get_blank_screen(stats_height=0)
+        rows, cols = screen.shape
+        assert len(message) < cols - 2
+
+        start = (cols - len(message)) // 2
+        screen[rows // 2, start : start + len(message)] = list(message)
+        return Game.screen_to_tui(screen)
+
     def update_paddle(self, player_number: int, key):
         """Updates the paddle positions"""
+        if time.time() - self.score_timestamp < self.SCORE_DISPLAY_TIME:
+            return
         if self.loser != 0:
             # Game is over, don't update anything
             return
@@ -209,18 +282,31 @@ class Game:
         self.draw_paddle(paddle)
 
     def __str__(self):
+        if time.time() - self.score_timestamp < self.SCORE_DISPLAY_TIME:
+            return self.get_message_screen(
+                f"Player {self.most_recent_score} scores! Score: {self.score[0]}-{self.score[1]}"
+            )
+
         return Game.screen_to_tui(self.screen)
 
     def is_full(self):
         return self.player1 is not None and self.player2 is not None
 
     @staticmethod
-    def get_blank_screen(rows=DEFAULT_ROWS, cols=DEFAULT_COLS):
+    def get_blank_screen(
+        rows=DEFAULT_ROWS, cols=DEFAULT_COLS, stats_height=STATS_HEIGHT
+    ):
         """Return a blank screen with no paddles or ball, just the border"""
+        rows = rows + stats_height
         screen = np.full((rows, cols), b" ", dtype="S1")
-        screen[0, :] = screen[-1, :] = b"-"
+        screen[0, :] = screen[-1, :] = screen[-stats_height - 1, :] = b"-"
         screen[:, 0] = screen[:, -1] = b"+"
         return screen
+
+    def update_network_stats(self, stats, offset=1):
+        """Updates the network statistics area"""
+        self.screen[-self.STATS_HEIGHT + offset, 1:-2] = b" "
+        self.screen[-self.STATS_HEIGHT + offset, 1 : 1 + len(stats)] = list(stats)
 
     @staticmethod
     def screen_to_tui(screen):
