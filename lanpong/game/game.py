@@ -24,9 +24,10 @@ class Player:
     Player object for pong
     """
 
-    def __init__(self, paddle):
+    def __init__(self, paddle, username):
         self.paddle = paddle
         self.is_ready = False
+        self.username = username
 
 
 class Ball:
@@ -193,13 +194,13 @@ class Game:
         """Draws a paddle on the screen"""
         self.screen[paddle.row : paddle.row + paddle.length, paddle.col] = b"|"
 
-    def initialize_player(self):
+    def initialize_player(self, username):
         """Initializes a player. Returns non-zero player id, 0 if game is full."""
         if self.player1 is None:
-            self.player1 = Player(self.paddle1)
+            self.player1 = Player(self.paddle1, username)
             return 1
         elif self.player2 is None:
-            self.player2 = Player(self.paddle2)
+            self.player2 = Player(self.paddle2, username)
             return 2
         else:
             return 0

@@ -161,7 +161,7 @@ class Server:
                 channel.sendall(char)
         return line
 
-    def get_game_or_create(self):
+    def get_game_or_create(self, username):
         """
         Returns a game that is not full, or creates a new one
         Returns:
@@ -177,8 +177,7 @@ class Server:
                 # Create a thread for this game and start it.
                 game_thread = threading.Thread(target=self.handle_game, args=(game,))
                 game_thread.start()
-            # Get the player id for this game.
-            player_id = game.initialize_player()
+            player_id = game.initialize_player(username)
             return game, player_id
 
     def handle_client(self, client_socket):
@@ -265,7 +264,7 @@ class Server:
                 add_public_key()
                 send_frame(channel, get_lobby_screen(self.db, user["username"]))
 
-            game, player_id = self.get_game_or_create()
+            game, player_id = self.get_game_or_create(user["username"])
             game.set_player_ready(player_id, True)
 
             # Show waiting screen until there are two players.
@@ -292,8 +291,13 @@ class Server:
                 send_frame(channel, str(game))
                 time.sleep(0.05)
             # Game is over
-            winner = 1 if game.loser == 2 else 2
-            send_frame(channel, get_message_screen(f"Player {winner} wins!"))
+            winner_id = 1 if game.loser == 2 else 2
+            winner = game.player1 if winner_id == 1 else game.player2
+
+            if player_id == winner_id:
+                self.db.update_user(user["id"], {"score": user["score"] + 1})
+
+            send_frame(channel, get_message_screen(f"{winner.username} wins!"))
         except Exception as e:
             print(f"Exception: {e}")
         finally:

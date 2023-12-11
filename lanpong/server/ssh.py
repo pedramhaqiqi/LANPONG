@@ -120,7 +120,7 @@ class SSHServer(paramiko.ServerInterface):
             allowed = ["password"]
             if user is None:
                 return "none"
-            elif user["public_key"] is not None:
+            elif user.get("public_key") is not None:
                 allowed.append("publickey")
             return ",".join(allowed)
 
