@@ -48,7 +48,7 @@ def get_lobby_screen(db, username=""):
     """
     Returns the lobby screen with the leaderboard and options.
     """
-    screen = Game.get_blank_screen()
+    screen = Game.get_blank_screen(stats_height=0)
     rows, cols = screen.shape
 
     assert len(LOGO_ASCII[0]) < cols - 2

@@ -126,10 +126,10 @@ class Game:
     Game object for pong
     """
 
-    DEFAULT_ROWS = 36
-    DEFAULT_COLS = 105
-    STATS_HEIGHT = 5
-    GAME_LENGTH = 2
+    DEFAULT_ROWS = 24
+    DEFAULT_COLS = 70
+    STATS_HEIGHT = 3
+    GAME_LENGTH = 3
     SCORE_DISPLAY_TIME = 2
 
     def __init__(
@@ -178,6 +178,7 @@ class Game:
         self.screen[1 : self.nrows - 1, 1] = self.screen[1 : self.nrows - 1, -2] = b" "
         self.paddle1.row = self.nrows // 2
         self.paddle2.row = self.nrows // 2
+        self.paddle1.direction = self.paddle2.direction = 0
 
     def _reset_ball(self):
         """Resets the ball to its original position"""
