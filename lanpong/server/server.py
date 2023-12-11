@@ -298,6 +298,7 @@ class Server:
                 self.db.update_user(user["id"], {"score": user["score"] + 1})
 
             send_frame(channel, get_message_screen(f"{winner.username} wins!"))
+            time.sleep(2)
         except Exception as e:
             print(f"Exception: {e}")
         finally:

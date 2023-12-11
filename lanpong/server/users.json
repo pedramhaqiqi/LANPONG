@@ -16,7 +16,7 @@
     "id": 3,
     "username": "mark",
     "password": "123",
-    "score": 5,
+    "score": 9,
     "public_key": "",
     "key_type": "ed25519"
   },
@@ -36,7 +36,7 @@
     "id": 6,
     "username": "sam",
     "password": "123",
-    "score": 3,
+    "score": 4,
     "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMjlXfHr4jxk5g76UG0mlbI/oosXnD94MrYle/39+b+2 markchen8717@gmail.com",
     "key_type": "ed25519"
   }

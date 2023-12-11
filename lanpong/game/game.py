@@ -129,7 +129,7 @@ class Game:
     DEFAULT_ROWS = 36
     DEFAULT_COLS = 105
     STATS_HEIGHT = 5
-    GAME_LENGTH = 5
+    GAME_LENGTH = 2
     SCORE_DISPLAY_TIME = 2
 
     def __init__(
