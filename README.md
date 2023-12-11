@@ -52,7 +52,7 @@ Once you create a new user, you can join as that user using the following comman
 $ ssh <username>@<server-ip> -p 2222
 ```
 
-## Production
+## Production Server (Online)
 ```bash
 $ ssh new@107.173.51.14:2222
 ```
