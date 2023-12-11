@@ -16,7 +16,7 @@
     "id": 3,
     "username": "mark",
     "password": "123",
-    "score": 9,
+    "score": 10,
     "public_key": "",
     "key_type": "ed25519"
   },

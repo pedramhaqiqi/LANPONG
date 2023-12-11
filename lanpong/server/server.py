@@ -83,7 +83,7 @@ def wait_for_char(channel, channel_file, valid_chars):
     Waits for a character from the client that is in the valid_chars set.
     """
     while not channel.closed:
-        char = channel_file.read(1) if channel.recv_ready() else b""
+        char = channel_file.read(1).decode()
         if char in valid_chars:
             return char
 
