@@ -140,7 +140,7 @@ class Server:
         """
         game.is_game_started_event.wait()
         while game.loser == 0:
-            game.update_network_stats(f"PING: Player {name} {ping.get()}ms", player_id)
+            game.update_network_stats(f"{name}'s PING: {ping.get():.3F}ms", player_id)
             time.sleep(0.05)
 
     def echo_line(self, channel_file, channel):
