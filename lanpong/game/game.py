@@ -28,6 +28,7 @@ class Player:
         self.paddle = paddle
         self.is_ready = False
         self.username = username
+        self.id = None
 
 
 class Ball:
@@ -169,6 +170,7 @@ class Game:
         self.screen[self.ball.get_row()][self.ball.get_col()] = Ball.SYMBOL
 
         self.player1 = self.player2 = None
+
         self.loser = 0
 
     def _reset_paddles(self):
@@ -198,9 +200,11 @@ class Game:
         """Initializes a player. Returns non-zero player id, 0 if game is full."""
         if self.player1 is None:
             self.player1 = Player(self.paddle1, username)
+            self.player1.id = 1
             return 1
         elif self.player2 is None:
             self.player2 = Player(self.paddle2, username)
+            self.player2.id = 2
             return 2
         else:
             return 0
@@ -332,8 +336,11 @@ class Game:
 
     def update_network_stats(self, stats, offset=1):
         """Updates the network statistics area"""
-        self.screen[-self.STATS_HEIGHT + offset, 1:-2] = b" "
-        self.screen[-self.STATS_HEIGHT + offset, 1 : 1 + len(stats)] = list(stats)
+        # self.screen[-self.STATS_HEIGHT + 1, 1:-2] = b" "
+        if offset == 1:
+            self.screen[-self.STATS_HEIGHT + 1, 1 : 1 + len(stats)] = list(stats)
+        else:
+            self.screen[-self.STATS_HEIGHT + 1, -1 - len(stats) : -1] = list(stats)
 
     def is_full(self):
         """Returns True if the game is full, False otherwise"""
@@ -342,7 +349,7 @@ class Game:
     def __str__(self):
         if time.time() - self.score_timestamp < self.SCORE_DISPLAY_TIME:
             return self.get_message_screen(
-                f"Player {self.most_recent_score} scores! Score: {self.score[0]}-{self.score[1]}"
+                f"{self.player1.username if self.most_recent_score == self.player1.id else self.player2.username} scores! Score: {self.score[0]}-{self.score[1]}"
             )
 
         return Game.screen_to_tui(self.screen)
