@@ -136,3 +136,6 @@ dmypy.json
 
 # default path for leaderboard file
 leaderboard.csv
+
+# lock file
+*.lock
