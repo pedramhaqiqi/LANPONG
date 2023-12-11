@@ -183,6 +183,9 @@ class Server:
             return game, player_id
 
     def handle_client(self, client_socket):
+        """
+        Handles a client connection.
+        """
         try:
             # Initialize the SSH server protocol for this connection.
             transport = paramiko.Transport(client_socket)
