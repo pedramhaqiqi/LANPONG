@@ -42,3 +42,13 @@ You should see the following output:
 Listening for connection on 0.0.0.0:2222
 ```
 
+You can now connect to the server using the following command:
+```bash
+$ ssh new@<server-ip> -p 2222
+```
+
+Once you create a new user, you can join as that user using the following command:
+```bash
+$ ssh <username>@<server-ip> -p 2222
+```
+
