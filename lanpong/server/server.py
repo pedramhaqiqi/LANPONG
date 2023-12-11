@@ -78,12 +78,12 @@ def get_lobby_screen(db, username=""):
     return Game.screen_to_tui(screen)
 
 
-def wait_for_char(channel_file, valid_chars):
+def wait_for_char(channel, channel_file, valid_chars):
     """
     Waits for a character from the client that is in the valid_chars set.
     """
-    while True:
-        char = channel_file.read(1).decode()
+    while not channel.closed:
+        char = channel_file.read(1) if channel.recv_ready() else b""
         if char in valid_chars:
             return char
 
@@ -229,7 +229,7 @@ class Server:
                 # Only support ed25519.
                 key_types = {"1": "ed25519"}
                 send_frame(channel, "Please select a key type:\r\n1. Ed25519\r\n")
-                choice = wait_for_char(channel_file, set(key_types.keys()))
+                choice = wait_for_char(channel, channel_file, set(key_types.keys()))
 
                 key_type = key_types[choice]
                 send_frame(
@@ -260,10 +260,9 @@ class Server:
 
             # Show lobby and match making option screen.
             send_frame(channel, get_lobby_screen(self.db, user["username"]))
-            while (char := wait_for_char(channel_file, {"1", "2"})) == "2":
+            while (char := wait_for_char(channel, channel_file, {"1", "2"})) == "2":
                 add_public_key()
                 send_frame(channel, get_lobby_screen(self.db, user["username"]))
-
             game, player_id = self.get_game_or_create(user["username"])
             game.set_player_ready(player_id, True)
 
