@@ -1,4 +1,4 @@
-# Pong Game Server Documentation
+# LANPONG Documentation for Project Report
 
 ## Overview
 
@@ -34,6 +34,8 @@ We provide a default key file, `test_key`, which requires no password. It exists
 To improve security, we recommend generating a new RSA key file and setting a password.
 
 However, please note this will require all connecting clients to have the new key file.
+
+<div style="page-break-after: always;"></div>
 
 This server is initialized and started in `main.py` as follows:
 
@@ -71,13 +73,15 @@ def handle_client(self, client_socket):
     try:
         # Initialize the SSH server protocol for this connection.
         transport = paramiko.Transport(client_socket)
-        ssh_server = SSHServer(self)
+        ssh_server = SSHClientHandler(self)
         transport.add_server_key(self.server_key)
         transport.start_server(server=ssh_server)
         [...]
 ```
 
-The SSHServer is a helper class that handles the SSH connection with the client.
+<div style="page-break-after: always;"></div>
+
+The `SSHClientHandler` is a helper class that handles the SSH connection with the client.
 
 In this class, we check if the connecting user exists (is in the database) and is not already connected:
 
@@ -117,51 +121,55 @@ See the `register_account` function in `server.py` for more details.
 
 If the user connected via `ssh <username>@<server_ip>`, and the username exists in the database, we will prompt them for a password.
 
+<div style="page-break-after: always;"></div>
+
 Once, authenticated, the user will see the lobby screen:
 
-```text
-+-------------------------------------------------------------------------------------------------------+
-+                              _       ___   _   _ ______ _____ _   _ _____                             +
-+                             | |     / _ \ | \ | || ___ \  _  | \ | |  __ \                            +
-+                             | |    / /_\ \|  \| || |_/ / | | |  \| | |  \/                            +
-+                             | |    |  _  || . ` ||  __/| | | | . ` | | __                             +
-+                             | |____| | | || |\  || |   \ \_/ / |\  | |_\ \                            +
-+                             \_____/\_| |_/\_| \_/\_|    \___/\_| \_/\____/                            +
-+                                                                                                       +
-+                                      Welcome to LAN PONG, mark!                                       +
-+                                             Leaderboard:                                              +
-+                                           1. jane_doe - 150                                           +
-+                                           2. john_doe - 120                                           +
-+                                              3. mark - 9                                              +
-+                                              4. sam - 4                                               +
-+                                              5. new - 0                                               +
-+                                           6. joeevans - 0                                             +
-+                                                                                                       +
-+                                         Press key to proceed:                                         +
-+                                            [1] Matchmaking                                            +
-+                                     [2] Public key configuration                                      +
-+                                                                                                       +
-+                                                                                                       +
-+                                                                                                       +
-+                                                                                                       +
-+                                                                                                       +
-+                                                                                                       +
-+                                                                                                       +
-+                                                                                                       +
-+                                                                                                       +
-+                                                                                                       +
-+                                                                                                       +
-+                                                                                                       +
-+                                                                                                       +
-+                                                                                                       +
-+                                                                                                       +
-+-------------------------------------------------------------------------------------------------------+
-+                                                                                                       +
-+                                                                                                       +
-+                                                                                                       +
-+                                                                                                       +
-+-------------------------------------------------------------------------------------------------------+
+```py
++-------------------------------------------------------------------------------------+
++                     _       ___   _   _ ______ _____ _   _ _____                    +
++                    | |     / _ \ | \ | || ___ \  _  | \ | |  __ \                   +
++                    | |    / /_\ \|  \| || |_/ / | | |  \| | |  \/                   +
++                    | |    |  _  || . ` ||  __/| | | | . ` | | __                    +
++                    | |____| | | || |\  || |   \ \_/ / |\  | |_\ \                   +
++                    \_____/\_| |_/\_| \_/\_|    \___/\_| \_/\____/                   +
++                                                                                     +
++                             Welcome to LAN PONG, mark!                              +
++                                    Leaderboard:                                     +
++                                  1. jane_doe - 150                                  +
++                                  2. john_doe - 120                                  +
++                                     3. mark - 9                                     +
++                                     4. sam - 4                                      +
++                                     5. new - 0                                      +
++                                  6. joeevans - 0                                    +
++                                                                                     +
++                                Press key to proceed:                                +
++                                   [1] Matchmaking                                   +
++                            [2] Public key configuration                             +
++                                                                                     +
++                                                                                     +
++                                                                                     +
++                                                                                     +
++                                                                                     +
++                                                                                     +
++                                                                                     +
++                                                                                     +
++                                                                                     +
++                                                                                     +
++                                                                                     +
++                                                                                     +
++                                                                                     +
++                                                                                     +
++                                                                                     +
++-------------------------------------------------------------------------------------+
++                                                                                     +
++                                                                                     +
++                                                                                     +
++                                                                                     +
++-------------------------------------------------------------------------------------+
+
 ```
+<div style="page-break-after: always;"></div>
 
 ## Public Key Authentication
 
@@ -206,6 +214,7 @@ def get_game_or_create(self, username):
            game_thread.start()
            [...]
 ```
+<div style="page-break-after: always;"></div>
 
 ## The Game
 
@@ -234,6 +243,7 @@ ping_thread = threading.Thread(
 )
 ping_thread.start()
 ```
+<div style="page-break-after: always;"></div>
 
 ### Ping
 
@@ -250,15 +260,16 @@ def handle_ping(self, game: Game, ping: Ping, name, player_id):
 
 `game.update_network_stats` will update the network statistics and allow live viewing of the latency during gameplay:
 
-```text
+```py
 [...](Game TUI Above)
-+-------------------------------------------------------------------------------------------------------+
-+                                          Network Statistics                                           +
-+sam's PING: 0.095ms                                                                mark's PING: 0.112ms+
-+                                                                                                       +
-+                                                                                                       +
-+-------------------------------------------------------------------------------------------------------+
++---------------------------------------------------------------------------------------+
++                                  Network Statistics                                   +
++sam's PING: 0.095ms                                                mark's PING: 0.112ms+
++                                                                                       +
++                                                                                       +
++---------------------------------------------------------------------------------------+
 ```
+<div style="page-break-after: always;"></div>
 
 ## Database
 
@@ -305,3 +316,4 @@ This concludes the documentation for the LANPONG server.
 Please see our project report for an account of the development process.
 
 For more information, please see the source code, or contact the authors.
+
