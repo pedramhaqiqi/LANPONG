@@ -6,7 +6,7 @@ authors = ["Pedram Haqiqi", "Sam Prokopchuk", "Mark Chen"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = ">=3.10"
 asyncssh = "^2.14.1"
 paramiko = "^3.3.1"
 numpy = "^1.26.2"
