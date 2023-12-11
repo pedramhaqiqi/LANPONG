@@ -119,7 +119,7 @@ class SSHServer(paramiko.ServerInterface):
         - Comma-separated string of allowed authentication methods.
         """
         with self.lock:
-            if username in self.connections:
+            if (not username == "new") and (username in self.connections):
                 return "none"
 
             user = self.db.get_user(username)
