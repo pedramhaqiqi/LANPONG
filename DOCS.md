@@ -260,7 +260,7 @@ def handle_ping(self, game: Game, ping: Ping, name, player_id):
 
 `game.update_network_stats` will update the network statistics and allow live viewing of the latency during gameplay:
 
-```py
+```cpp
 [...](Game TUI Above)
 +---------------------------------------------------------------------------------------+
 +                                  Network Statistics                                   +
@@ -316,4 +316,5 @@ This concludes the documentation for the LANPONG server.
 Please see our project report for an account of the development process.
 
 For more information, please see the source code, or contact the authors.
+
 
