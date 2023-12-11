@@ -13,7 +13,7 @@ class SSHServer(paramiko.ServerInterface):
         - server: Instance of the server containing a database, user information, lock, and connections.
         """
         self.db = server.db
-        self.user = None  # Initialize user to None
+        self.user = None
         self.lock = server.lock
         self.connections = server.connections
 
