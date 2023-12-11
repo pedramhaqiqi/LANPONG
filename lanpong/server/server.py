@@ -299,5 +299,7 @@ class Server:
         finally:
             # Clean up.
             if channel is not None:
-                channel.close()
+                self.connections.remove(user["username"])
+                send_frame(channel, SHOW_CURSOR)
+            transport.close()
             client_socket.close()
