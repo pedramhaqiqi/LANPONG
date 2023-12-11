@@ -93,6 +93,8 @@ class Server:
         self.lock = threading.Lock()
         self.db = DB()
         self.server_key = paramiko.RSAKey.from_private_key_file(filename=key_file_name)
+        # Set of usernames of connected clients.
+        # Used to prevent multiple connections from the same user.
         self.connections = set()
         self.waiting_screen = get_message_screen(
             f"You are player 1. Waiting for player 2..."
