@@ -76,10 +76,13 @@ class SSHServer(paramiko.ServerInterface):
         Returns:
         - paramiko.AUTH_SUCCESSFUL if authentication is successful, else paramiko.AUTH_FAILED.
         """
-        self.user = self.db.login(username, password)
-        if self.user:
-            return paramiko.AUTH_SUCCESSFUL
-        return paramiko.AUTH_FAILED
+        try:
+            self.user = self.db.login(username, password)
+            if self.user:
+                return paramiko.AUTH_SUCCESSFUL
+            return paramiko.AUTH_FAILED
+        except:
+            return paramiko.AUTH_FAILED
 
     def check_auth_publickey(self, username, key):
         """
@@ -92,15 +95,18 @@ class SSHServer(paramiko.ServerInterface):
         Returns:
         - paramiko.AUTH_SUCCESSFUL if authentication is successful, else paramiko.AUTH_FAILED.
         """
-        user = self.db.get_user(username)
-        key_gen_func = {"ed25519": paramiko.ed25519key.Ed25519Key}
+        try:
+            user = self.db.get_user(username)
+            key_gen_func = {"ed25519": paramiko.ed25519key.Ed25519Key}
 
-        pbk = user["public_key"].split(" ", 3)
-        user_key = key_gen_func[user["key_type"]](data=base64.b64decode(pbk[1]))
-        if key == user_key:
-            self.user = user
-            return paramiko.AUTH_SUCCESSFUL
-        return paramiko.AUTH_FAILED
+            pbk = user["public_key"].split(" ", 3)
+            user_key = key_gen_func[user["key_type"]](data=base64.b64decode(pbk[1]))
+            if key == user_key:
+                self.user = user
+                return paramiko.AUTH_SUCCESSFUL
+            return paramiko.AUTH_FAILED
+        except:
+            return paramiko.AUTH_FAILED
 
     def get_allowed_auths(self, username):
         """
