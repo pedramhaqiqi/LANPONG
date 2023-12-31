@@ -1,6 +1,10 @@
 # LANPONG
 ![](https://github.com/pedramhaqiqi/LANPONG/blob/main/assets/Screen%20Recording%202023-12-30%20at%206.11.20%20PM.gif)
 
+##Try Out!:
+  - Create a new account using ssh new@107.173.51.14 -p 2222
+  - Login using created account ssh <username>107.173.51.14 -p 2222
+
 ## Setup
 
 ### Requirements
