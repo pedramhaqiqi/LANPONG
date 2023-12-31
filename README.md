@@ -1,4 +1,5 @@
 # LANPONG
+![](https://github.com/pedramhaqiqi/LANPONG/blob/main/assets/Screen%20Recording%202023-12-30%20at%206.11.20%20PM.gif)
 
 ## Setup
 
