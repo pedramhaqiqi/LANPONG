@@ -1,5 +1,5 @@
 # LANPONG
-![](https://github.com/pedramhaqiqi/LANPONG/blob/main/assets/Screen%20Recording%202023-12-30%20at%206.11.20%20PM.gif)
+![](https://github.com/pedramhaqiqi/LANPONG/blob/main/assets/demo_lanpong.mp4)
 
 ## Try Out!:
   - Create a new account using ssh new@107.173.51.14 -p 2222
