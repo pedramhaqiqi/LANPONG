@@ -3,8 +3,8 @@ https://github.com/pedramhaqiqi/LANPONG/assets/63091219/94362195-b21c-49c3-a09c-
 
 
 ## Try Out!:
-  - Create a new account using ssh new@107.173.51.14 -p 2222
-  - Login using created account ssh 'username'@107.173.51.14 -p 2222
+  - Create a new account using ssh new@lanpong.hopto.me -p 2222
+  - Login using created account ssh 'username'@lanpong.hopto.me -p 2222
 
 ## Setup
 
@@ -58,7 +58,7 @@ Once you create a new user, you can join as that user using the following comman
 $ ssh <username>@<server-ip> -p 2222
 ```
 
-## Production Server Ip (Online)
+## Production Server Domain (Online)
 ```bash
-107.173.51.14
+lanpong.hopto.me
 ```
