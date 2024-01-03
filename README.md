@@ -1,5 +1,6 @@
 # LANPONG
-![](https://github.com/pedramhaqiqi/LANPONG/blob/main/assets/demo_lanpong.mp4)
+https://github.com/pedramhaqiqi/LANPONG/assets/63091219/94362195-b21c-49c3-a09c-767df601e6fd
+
 
 ## Try Out!:
   - Create a new account using ssh new@107.173.51.14 -p 2222
