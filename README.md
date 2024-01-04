@@ -3,8 +3,8 @@ https://github.com/pedramhaqiqi/LANPONG/assets/63091219/94362195-b21c-49c3-a09c-
 
 
 ## Try Out!:
-  - Create a new account using ssh new@lanpong.hopto.me -p 2222
-  - Login using created account ssh 'username'@lanpong.hopto.me -p 2222
+  - Create a new account using ```ssh new@lanpong.hopto.me -p 2222```
+  - Login using created account ```ssh 'username'@lanpong.hopto.me -p 2222```
 
 ## Setup
 
